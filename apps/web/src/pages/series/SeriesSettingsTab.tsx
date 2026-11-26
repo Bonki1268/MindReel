@@ -4,14 +4,13 @@ import {
   DEFAULT_VIDEO_MODEL,
   IMAGE_MODELS,
   QUESTIONNAIRE_QUESTIONS,
-  SERIES_DIRECTIONS,
   VIDEO_MODELS,
   applyDefaultsPatch,
   needsLipSyncNote,
   type ImageModelKey,
   type QuestionnaireDefaults,
   type QuestionnaireDefaultsView,
-  type Series,
+  type ScenarioSeries,
   type Settings,
 } from '@templeyard/shared';
 import { Info, TriangleAlert } from 'lucide-react';
@@ -31,6 +30,8 @@ import { Tag } from '../../components/Tag';
 import { TextField } from '../../components/TextField';
 import { useAiAssist } from '../../features/assist/useAiAssist';
 import { useLeaveGuard } from '../../features/series/LeaveGuard';
+import { directionsFor } from '../../features/series/scenarioPackForm';
+import { useScenarioLabels, useScenarioPack } from '../../features/series/useScenarioPacks';
 import { seriesFormFrom, toUpdateSeriesInput } from '../../features/series/seriesForm';
 import {
   barMessage,
@@ -55,9 +56,9 @@ function creditsToText(value: number | null): string {
   return value === null ? '' : String(value);
 }
 
-function savedStateOf(series: Series, settings: Settings): SettingsFormState {
+function savedStateOf(series: ScenarioSeries, settings: Settings, directions: readonly string[]): SettingsFormState {
   return {
-    series: seriesFormFrom(series),
+    series: seriesFormFrom(series, directions),
     defaultsPatch: {},
     cost: { videoLimit: creditsToText(settings.defaultVideoCostLimitCredits), threshold: creditsToText(settings.consentThresholdCredits) },
   };
@@ -147,12 +148,16 @@ function SettingsForm({
   defaultsView,
   onSaved,
 }: {
-  series: Series;
+  series: ScenarioSeries;
   saved: SettingsFormState;
   defaultsView: QuestionnaireDefaultsView;
   onSaved: () => void;
 }) {
   const guard = useLeaveGuard();
+  // 情境包：決定影片方向的選項與介面用詞；建立後不能更改，這裡只顯示
+  const pack = useScenarioPack(series.scenarioPack);
+  const labels = useScenarioLabels(series.scenarioPack);
+  const directions = directionsFor(pack);
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SettingsFormState>(saved);
   const basicId = useId();
@@ -223,9 +228,15 @@ function SettingsForm({
               基本資料
             </h2>
             <TextField label="系列名稱" value={form.series.name} maxLength={40} onChange={(name) => update({ name })} />
+            <div className={styles.packRow}>
+              <p className={styles.packLine}>
+                情境包：<Tag tone="info">{pack?.name ?? series.scenarioPack}</Tag>
+              </p>
+              <p className={styles.help}>建立系列時選定，之後不能更改。</p>
+            </div>
             <OptionGroup
               legend="影片方向"
-              options={SERIES_DIRECTIONS.map((value) => ({ value, label: value }))}
+              options={directions.map((value) => ({ value, label: value }))}
               value={form.series.directionOption}
               onChange={(directionOption) => update({ directionOption, directionOther: '' })}
               other={{
@@ -257,7 +268,7 @@ function SettingsForm({
               <h2 id={modelId} className={styles.cardTitle}>
                 預設生成模型
               </h2>
-              <p className={styles.help}>新增影片時會先選好這兩個模型，仍可在建立影片頁更改；產生寺廟定裝版後，那支影片的模型就會鎖定。</p>
+              <p className={styles.help}>新增影片時會先選好這兩個模型，仍可在建立影片頁更改；產生{labels.board}後，那支影片的模型就會鎖定。</p>
             </div>
             <ModelPicker<ImageModelKey>
               legend="圖片模型"
@@ -383,6 +394,7 @@ function SettingsForm({
 
 export function SeriesSettingsTab() {
   const { series } = useSeriesPage();
+  const seriesPack = useScenarioPack(series.scenarioPack);
   const settings = useQuery({ queryKey: SETTINGS_KEY, queryFn: fetchSettings });
   const defaults = useQuery({ queryKey: DEFAULTS_KEY(series.id), queryFn: () => fetchQuestionnaireDefaults(series.id) });
   // 儲存完成後，用重新讀到的內容重建表單
@@ -403,9 +415,9 @@ export function SeriesSettingsTab() {
       )}
       {settings.data && defaults.data && (
         <SettingsForm
-          key={`${formKey}-${series.updatedAt}-${JSON.stringify(settings.data)}-${JSON.stringify(defaults.data)}`}
+          key={`${formKey}-${series.updatedAt}-${seriesPack?.id ?? ''}-${JSON.stringify(settings.data)}-${JSON.stringify(defaults.data)}`}
           series={series}
-          saved={savedStateOf(series, settings.data)}
+          saved={savedStateOf(series, settings.data, directionsFor(seriesPack))}
           defaultsView={defaults.data}
           onSaved={() => setFormKey((value) => value + 1)}
         />

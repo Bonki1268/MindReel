@@ -6,7 +6,8 @@ import { loadWorkflowConfig, workflowsFile } from '@templeyard/prompts';
 import { buildApp, type GenerationRuntime, type TextRuntime } from './app.js';
 import { createClaudePromptWriter } from './claude/writer.js';
 import { openDatabase } from './db/client.js';
-import { repoRoot, resolveDataDir, templesCsvPath } from './paths.js';
+import { repoRoot, resolveDataDir, scenarioPacksDir, templesCsvPath } from './paths.js';
+import { loadScenarioPacks } from './scenarioPacks/load.js';
 import { generationUnavailableMessage, readGenerationEnv, readTextEnv, textUnavailableMessage } from './runtime/env.js';
 import { importTemples } from './temples/import.js';
 import { countTemples } from './temples/repository.js';
@@ -15,6 +16,24 @@ import { countTemples } from './temples/repository.js';
 // 情境測試設定 TEMPLEYARD_NO_ENV_FILE，只用假的服務，不讀 .env.local。
 const envFile = path.join(repoRoot, '.env.local');
 if (!process.env.TEMPLEYARD_NO_ENV_FILE && existsSync(envFile)) process.loadEnvFile(envFile);
+
+// 情境包設定檔：格式錯誤就啟動失敗並說明檔案與欄位。
+// SCENARIO_PACKS_DIR 換掉預設資料夾（scenario-packs/）；SCENARIO_PACKS_EXTRA_DIRS（逗號分隔）再多載入幾個資料夾
+const packDirs = [
+  process.env.SCENARIO_PACKS_DIR?.trim() ? path.resolve(repoRoot, process.env.SCENARIO_PACKS_DIR.trim()) : scenarioPacksDir,
+  ...(process.env.SCENARIO_PACKS_EXTRA_DIRS ?? '')
+    .split(',')
+    .map((dir) => dir.trim())
+    .filter(Boolean)
+    .map((dir) => path.resolve(repoRoot, dir)),
+];
+let scenarioPacks: ReturnType<typeof loadScenarioPacks>;
+try {
+  scenarioPacks = loadScenarioPacks(packDirs);
+} catch (error: unknown) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
 
 // 留白（例如照 .env.example 複製後沒填）時用預設 3001
 const port = Number(process.env.API_PORT?.trim() || 3001);
@@ -69,6 +88,7 @@ if (textEnv.config) {
 
 const app = buildApp({
   db,
+  scenarioPacks,
   assetsDir: path.join(dataDir, 'assets'),
   workflows,
   generation,

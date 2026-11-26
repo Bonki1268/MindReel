@@ -1,4 +1,12 @@
-import { MODELS_LOCKED_MESSAGE, TEMPLE_LOCKED_MESSAGE, createVideoSchema, updateVideoSchema, type VideoDetail } from '@templeyard/shared';
+import {
+  MODELS_LOCKED_MESSAGE,
+  PRODUCT_VIDEO_NOT_READY_MESSAGE,
+  TEMPLE_LOCKED_MESSAGE,
+  createVideoSchema,
+  updateVideoSchema,
+  type ScenarioPackRegistry,
+  type VideoDetail,
+} from '@templeyard/shared';
 import type { FastifyInstance } from 'fastify';
 import type { AppDatabase } from '../db/client.js';
 import { toValidationError } from '../http/errors.js';
@@ -14,14 +22,25 @@ const INVALID_MESSAGE = '影片資料不正確';
 const VIDEO_NOT_FOUND = '找不到這支影片';
 const SERIES_NOT_FOUND = '找不到這個系列';
 const TEMPLE_NOT_FOUND = '找不到這間寺廟';
+const SCENARIO_PACK_MISSING_MESSAGE = '這個系列的情境包設定已不存在';
 
 /** POST /api/videos、GET /api/videos/:id、PATCH /api/videos/:id */
-export function registerVideoRoutes(app: FastifyInstance, db: AppDatabase, clock: Clock, boards: TempleBoardService): void {
+export function registerVideoRoutes(
+  app: FastifyInstance,
+  db: AppDatabase,
+  clock: Clock,
+  boards: TempleBoardService,
+  packs: ScenarioPackRegistry,
+): void {
   app.post('/api/videos', async (request, reply) => {
     const parsed = createVideoSchema.safeParse(request.body ?? {});
     if (!parsed.success) return reply.status(400).send(toValidationError(parsed.error, INVALID_MESSAGE));
     const series = findSeries(db, parsed.data.seriesId);
     if (!series) return reply.status(404).send(errorBody(SERIES_NOT_FOUND));
+    // 影片的主體與畫面比例讀系列的情境包；商品主體第 16 階段才有
+    const pack = packs.get(series.scenarioPack);
+    if (!pack) return reply.status(409).send(errorBody(SCENARIO_PACK_MISSING_MESSAGE));
+    if (pack.subject_type !== 'temple') return reply.status(409).send(errorBody(PRODUCT_VIDEO_NOT_READY_MESSAGE));
     if (!findTemple(db, parsed.data.templeId)) return reply.status(404).send(errorBody(TEMPLE_NOT_FOUND));
 
     // 模型帶入系列「現在」的預設值；之後改系列不會影響這支影片
@@ -32,6 +51,8 @@ export function registerVideoRoutes(app: FastifyInstance, db: AppDatabase, clock
         templeId: parsed.data.templeId,
         imageModel: series.defaultImageModel,
         videoModel: series.defaultVideoModel,
+        subjectType: pack.subject_type,
+        aspectRatio: pack.default_aspect_ratio,
       },
       clock,
     );

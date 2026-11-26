@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Series } from '@templeyard/shared';
+import type { ScenarioSeries } from '@templeyard/shared';
 import { Link, Outlet, useOutletContext, useParams } from 'react-router';
 import { fetchLibraryCharacters, fetchSeriesVideos } from '../../api/client';
 import { LeaveGuardProvider, useLeaveGuard } from '../../features/series/LeaveGuard';
@@ -11,7 +11,7 @@ import styles from './SeriesPages.module.css';
 // 系列頁的外框（docs/03-App-Flow.md「系列頁」、設計稿 docs/design/series/）：
 // 頁首與麵包屑；找不到系列時說明；子頁共用目前的系列
 
-export type SeriesPageContext = { series: Series };
+export type SeriesPageContext = { series: ScenarioSeries };
 
 export function useSeriesPage(): SeriesPageContext {
   return useOutletContext<SeriesPageContext>();

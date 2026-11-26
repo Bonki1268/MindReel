@@ -24,8 +24,9 @@ import {
   costCheckSchema,
   templeBoardResponseSchema,
   photoResponseSchema,
-  seriesListResponseSchema,
-  seriesResponseSchema,
+  scenarioPacksResponseSchema,
+  scenarioSeriesListResponseSchema,
+  scenarioSeriesResponseSchema,
   templeSearchResponseSchema,
   videoDetailResponseSchema,
   videoResponseSchema,
@@ -67,7 +68,8 @@ import {
   type CreateSeriesInput,
   type ImageUpload,
   type Photo,
-  type Series,
+  type ScenarioPackSummary,
+  type ScenarioSeries,
   type TempleSummary,
   type UpdateCharacterInput,
   type UpdateSeriesInput,
@@ -120,19 +122,24 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
   return body;
 }
 
-export async function fetchSeriesList(): Promise<Series[]> {
-  return seriesListResponseSchema.parse(await request('/api/series')).series;
+export async function fetchSeriesList(): Promise<ScenarioSeries[]> {
+  return scenarioSeriesListResponseSchema.parse(await request('/api/series')).series;
 }
 
-export async function postSeries(input: CreateSeriesInput): Promise<Series> {
+/** 情境包清單（建立系列時選、介面用詞、影片方向選項） */
+export async function fetchScenarioPacks(): Promise<ScenarioPackSummary[]> {
+  return scenarioPacksResponseSchema.parse(await request('/api/scenario-packs')).scenarioPacks;
+}
+
+export async function postSeries(input: CreateSeriesInput): Promise<ScenarioSeries> {
   const body = await request('/api/series', { method: 'POST', body: JSON.stringify(input) });
-  return seriesResponseSchema.parse(body).series;
+  return scenarioSeriesResponseSchema.parse(body).series;
 }
 
 /** 修改系列設定（使用者 2026-11-05 提出） */
-export async function patchSeries(seriesId: string, input: UpdateSeriesInput): Promise<Series> {
+export async function patchSeries(seriesId: string, input: UpdateSeriesInput): Promise<ScenarioSeries> {
   const body = await request(`/api/series/${seriesId}`, { method: 'PATCH', body: JSON.stringify(input) });
-  return seriesResponseSchema.parse(body).series;
+  return scenarioSeriesResponseSchema.parse(body).series;
 }
 
 /** 系列角色庫（使用者 2026-11-05 提出） */

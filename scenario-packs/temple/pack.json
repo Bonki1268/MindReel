@@ -1,0 +1,27 @@
+{
+  "id": "temple",
+  "name": "廟埕",
+  "subject_type": "temple",
+  "labels": {
+    "subject": "寺廟",
+    "board": "寺廟定裝版",
+    "subjectPhotos": "寺廟照片"
+  },
+  "directions": ["歷史故事", "節慶宣傳", "景點導覽", "人物代言"],
+  "categories": [],
+  "view_keys": [
+    { "key": "front_overview", "name": "廟前全景" },
+    { "key": "sanchuan_hall", "name": "三川殿（山門）" },
+    { "key": "main_hall", "name": "正殿內部" },
+    { "key": "courtyard", "name": "廟埕" },
+    { "key": "detail_roof", "name": "細部特寫" }
+  ],
+  "features": { "scriptProposals": false, "styleQuestion": false, "productHero": false },
+  "script_structure": [],
+  "style_options": [],
+  "default_aspect_ratio": "16:9",
+  "default_duration_sec": 30,
+  "subtitle_safe_area": {},
+  "compliance": { "blocked_terms": {}, "warn_terms": {}, "replacements": {} },
+  "prompts": {}
+}

@@ -1,13 +1,21 @@
-import { makeSeriesSnapshot, seriesSnapshotSchema, type UpdateVideoInput, type Video } from '@templeyard/shared';
+import { makeSeriesSnapshot, seriesSnapshotSchema, type ScenarioVideo, type UpdateVideoInput } from '@templeyard/shared';
 import { eq } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { getSettings } from '../costs/repository.js';
 import { videos, type VideoRow } from '../db/schema.js';
 import { findSeries, type Clock } from '../series/repository.js';
 
-export type NewVideo = { seriesId: string; templeId: string; imageModel: string; videoModel: string };
+export type NewVideo = {
+  seriesId: string;
+  templeId: string;
+  imageModel: string;
+  videoModel: string;
+  /** 由系列的情境包決定；省略就是廟埕影片（寺廟、16:9） */
+  subjectType?: ScenarioVideo['subjectType'];
+  aspectRatio?: ScenarioVideo['aspectRatio'];
+};
 
-function toVideo(row: VideoRow): Video {
+function toVideo(row: VideoRow): ScenarioVideo {
   return {
     id: row.id,
     seriesId: row.seriesId,
@@ -23,6 +31,8 @@ function toVideo(row: VideoRow): Video {
     copiedFromVideoId: row.copiedFromVideoId,
     // 格式不正確的快照（壞掉的舊資料）當成沒有，改讀系列目前的設定
     seriesSnapshot: seriesSnapshotSchema.nullable().catch(null).parse(row.seriesSnapshot ?? null),
+    subjectType: row.subjectType,
+    aspectRatio: row.aspectRatio,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -32,7 +42,7 @@ function toVideo(row: VideoRow): Video {
  * 建立影片草稿：階段為 creating，模型還沒鎖定。
  * 同時保存當下的系列設定（之後修改系列只影響之後新增的影片），並帶入「新影片的費用上限」（系列設定的費用區塊）
  */
-export function createVideo(db: AppDatabase, input: NewVideo, clock: Clock): Video {
+export function createVideo(db: AppDatabase, input: NewVideo, clock: Clock): ScenarioVideo {
   const now = clock.now().toISOString();
   const seriesRow = findSeries(db, input.seriesId);
   const row = db
@@ -52,13 +62,13 @@ export function createVideo(db: AppDatabase, input: NewVideo, clock: Clock): Vid
 }
 
 /** 找不到時回傳 null */
-export function findVideo(db: AppDatabase, id: string): Video | null {
+export function findVideo(db: AppDatabase, id: string): ScenarioVideo | null {
   const row = db.select().from(videos).where(eq(videos.id, id)).get();
   return row ? toVideo(row) : null;
 }
 
 /** 找不到時回傳 null */
-export function updateVideo(db: AppDatabase, id: string, input: UpdateVideoInput, clock: Clock): Video | null {
+export function updateVideo(db: AppDatabase, id: string, input: UpdateVideoInput, clock: Clock): ScenarioVideo | null {
   const row = db
     .update(videos)
     .set({ ...input, updatedAt: clock.now().toISOString() })

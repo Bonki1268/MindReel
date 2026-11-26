@@ -1,0 +1,40 @@
+{
+  "id": "ecommerce",
+  "name": "電商",
+  "subject_type": "product",
+  "labels": {
+    "subject": "商品",
+    "board": "商品定裝版",
+    "subjectPhotos": "商品照"
+  },
+  "directions": ["新品上市", "促銷活動", "品牌故事", "使用教學"],
+  "categories": ["服飾配件", "3C 家電", "居家生活", "美妝保養", "食品飲料", "保健", "其他"],
+  "view_keys": [
+    { "key": "front", "name": "正面" },
+    { "key": "angle_45", "name": "45 度角" },
+    { "key": "back_side", "name": "背面或側面" },
+    { "key": "detail", "name": "細節特寫" },
+    { "key": "package", "name": "包裝" },
+    { "key": "in_use", "name": "使用情境" }
+  ],
+  "features": { "scriptProposals": true, "styleQuestion": true, "productHero": true },
+  "script_structure": [
+    { "key": "hook", "name": "開頭抓注意", "purpose": "前 3 秒讓人停下來看" },
+    { "key": "pain", "name": "痛點或需求", "purpose": "點出觀眾的困擾或想要的生活" },
+    { "key": "demo", "name": "商品示範", "purpose": "讓商品出場，展示怎麼用" },
+    { "key": "benefit", "name": "賣點", "purpose": "說明商品資料裡的賣點，不誇大" },
+    { "key": "cta", "name": "行動呼籲", "purpose": "告訴觀眾下一步要做什麼" }
+  ],
+  "style_options": [
+    { "key": "humor", "name": "幽默", "prompt_fragment": "輕鬆幽默的語氣與畫面，帶一點誇張的反差，但不貶低任何人" },
+    { "key": "exaggerated", "name": "誇張", "prompt_fragment": "戲劇化、節奏明快的誇張演出，畫面有強烈的視覺衝擊" },
+    { "key": "realistic", "name": "真實描述", "prompt_fragment": "像日常使用者的真實分享，自然光、平實的語氣、不過度修飾" },
+    { "key": "warm", "name": "溫馨", "prompt_fragment": "溫暖柔和的色調與生活感的場景，語氣親切" },
+    { "key": "premium", "name": "質感", "prompt_fragment": "簡潔留白的構圖、細緻的光影與材質特寫，語氣沉穩克制" }
+  ],
+  "default_aspect_ratio": "9:16",
+  "default_duration_sec": 15,
+  "subtitle_safe_area": { "9:16": { "top": 0.1, "bottom": 0.2 } },
+  "compliance": { "blocked_terms": {}, "warn_terms": {}, "replacements": {} },
+  "prompts": { "product-view": "product-view", "script-proposal": "script-proposal" }
+}

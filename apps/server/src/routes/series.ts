@@ -1,10 +1,13 @@
 import {
+  SCENARIO_PACK_LOCKED_MESSAGE,
+  SCENARIO_PACK_NOT_FOUND_MESSAGE,
   createSeriesSchema,
   parseVideoFilter,
   parseVideoSort,
   updateSeriesSchema,
   type ApiError,
   type DefaultsPatch,
+  type ScenarioPackRegistry,
 } from '@templeyard/shared';
 import type { FastifyInstance } from 'fastify';
 import type { AppDatabase } from '../db/client.js';
@@ -15,9 +18,11 @@ import { patchQuestionnaireDefaults, readQuestionnaireDefaults } from '../series
 import { listSeriesVideos } from '../series/videos.js';
 
 const INVALID_MESSAGE = '系列資料不正確';
+/** 建立系列時沒選情境包就是廟埕包 */
+const DEFAULT_SCENARIO_PACK = 'temple';
 
 /** GET /api/series、POST /api/series、PATCH /api/series/:id */
-export function registerSeriesRoutes(app: FastifyInstance, db: AppDatabase, clock: Clock): void {
+export function registerSeriesRoutes(app: FastifyInstance, db: AppDatabase, clock: Clock, packs: ScenarioPackRegistry): void {
   app.get('/api/series', async () => ({ series: listSeries(db) }));
 
   // 過去的影片：這個系列的影片與共同角色（使用者 2026-11-04 提出）；第 14 階段加上狀態篩選與排序
@@ -48,10 +53,21 @@ export function registerSeriesRoutes(app: FastifyInstance, db: AppDatabase, cloc
   app.post('/api/series', async (request, reply) => {
     const parsed = createSeriesSchema.safeParse(request.body ?? {});
     if (!parsed.success) return reply.status(400).send(toValidationError(parsed.error, INVALID_MESSAGE));
-    return reply.status(201).send({ series: createSeries(db, parsed.data, clock) });
+    // 省略情境包就是廟埕包；情境包以登記表為準，新增情境包不用改這裡
+    const scenarioPack = parsed.data.scenarioPack ?? DEFAULT_SCENARIO_PACK;
+    if (!packs.has(scenarioPack)) {
+      const body: ApiError = { message: INVALID_MESSAGE, fieldErrors: { scenarioPack: SCENARIO_PACK_NOT_FOUND_MESSAGE } };
+      return reply.status(400).send(body);
+    }
+    return reply.status(201).send({ series: createSeries(db, { ...parsed.data, scenarioPack }, clock) });
   });
 
   app.patch<{ Params: { id: string } }>('/api/series/:id', async (request, reply) => {
+    // 情境包建立後不能更改（兩種寫法都擋，整個請求拒絕）
+    const body = request.body;
+    if (typeof body === 'object' && body !== null && ('scenarioPack' in body || 'scenario_pack' in body)) {
+      return reply.status(400).send(errorBody(SCENARIO_PACK_LOCKED_MESSAGE));
+    }
     const parsed = updateSeriesSchema.safeParse(request.body ?? {});
     if (!parsed.success) return reply.status(400).send(toValidationError(parsed.error, INVALID_MESSAGE));
     const updated = updateSeries(db, request.params.id, parsed.data, clock);

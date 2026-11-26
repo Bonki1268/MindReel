@@ -1,4 +1,4 @@
-import { seriesCardTags, type Series } from '@templeyard/shared';
+import { seriesCardTags, type ScenarioSeries } from '@templeyard/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useId } from 'react';
@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 import { fetchSeriesVideos } from '../../api/client';
 import { Tag } from '../../components/Tag';
 import styles from './SeriesCard.module.css';
+import { useScenarioPack } from './useScenarioPacks';
 
 export function seriesVideosKey(seriesId: string) {
   return ['series-videos', seriesId] as const;
@@ -16,11 +17,13 @@ export function seriesVideosKey(seriesId: string) {
  * 不顯示整段視覺風格（使用者 2026-11-05 提出）。
  * 有影片時是「新增影片」與「系列設定」，還沒有影片時是「新增第一支影片」
  */
-export function SeriesCard({ series }: { series: Series }) {
+export function SeriesCard({ series }: { series: ScenarioSeries }) {
   const titleId = useId();
   const videos = useQuery({ queryKey: seriesVideosKey(series.id), queryFn: () => fetchSeriesVideos(series.id) });
   const list = videos.data?.videos ?? [];
   const tags = seriesCardTags({ direction: series.direction, videos: list, characters: videos.data?.characters ?? [] });
+  // 情境包標籤（廟埕／電商）；情境包清單還沒讀到時先不顯示
+  const pack = useScenarioPack(series.scenarioPack);
   const newVideo = `/series/${series.id}/videos/new`;
 
   return (
@@ -30,8 +33,13 @@ export function SeriesCard({ series }: { series: Series }) {
           {series.name}
         </h3>
       </div>
-      {videos.isSuccess && tags.length > 0 && (
+      {videos.isSuccess && (pack || tags.length > 0) && (
         <ul className={styles.tags} aria-label={`${series.name}的標籤`}>
+          {pack && (
+            <li>
+              <Tag tone="info">{pack.name}</Tag>
+            </li>
+          )}
           {tags.map((tag) => (
             <li key={tag}>
               <Tag>{tag}</Tag>

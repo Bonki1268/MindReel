@@ -62,6 +62,8 @@ export const series = sqliteTable('series', {
   questionnaireDefaults: text('questionnaire_defaults', { mode: 'json' }).$type<Record<string, unknown> | null>(),
   // 第 14 階段：在系列設定改過的預設值題目（標示「自己寫」）
   questionnaireDefaultEdits: text('questionnaire_default_edits', { mode: 'json' }).$type<string[] | null>(),
+  // 第 15 階段：情境包（scenario-packs/<id>）；建立後不可更新（後端強制），既有系列遷移為 temple
+  scenarioPack: text('scenario_pack').notNull().default('temple'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
@@ -91,6 +93,9 @@ export const videos = sqliteTable(
     copiedFromVideoId: text('copied_from_video_id'),
     // 第 14 階段：建立影片時保存的系列設定（視覺風格、方向、預設模型、問卷預設值）
     seriesSnapshot: text('series_snapshot', { mode: 'json' }).$type<SeriesSnapshot | null>(),
+    // 第 15 階段：主體（temple／product）與畫面比例，由系列的情境包決定；既有影片遷移為 temple、16:9
+    subjectType: text('subject_type').$type<'temple' | 'product'>().notNull().default('temple'),
+    aspectRatio: text('aspect_ratio').$type<'16:9' | '9:16'>().notNull().default('16:9'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

@@ -11,7 +11,9 @@ import { createAssetStore } from './assets/store.js';
 import { createConsentStore, type ConsentStore } from './costs/consents.js';
 import type { AppDatabase } from './db/client.js';
 import { createGenerationService, type SucceededHandler } from './generations/service.js';
-import { resolveDataDir } from './paths.js';
+import { resolveDataDir, scenarioPacksDir } from './paths.js';
+import { loadScenarioPacks } from './scenarioPacks/load.js';
+import { registerScenarioPackRoutes } from './routes/scenarioPacks.js';
 import { createAssistService } from './assist/service.js';
 import { CHARACTER_LOOK_NODE, CHARACTER_SHEET_NODE, createCharacterService } from './characters/service.js';
 import { createPlanService } from './plans/service.js';
@@ -93,6 +95,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   const clock = deps.clock ?? systemClock;
   const store = createAssetStore(deps.assetsDir ?? path.join(resolveDataDir(), 'assets'));
 
+  // 情境包：沒有指定時讀 repo 的 scenario-packs/；格式錯誤會在這裡丟出錯誤
+  const scenarioPacks = deps.scenarioPacks ?? loadScenarioPacks([scenarioPacksDir]);
   const workflows = deps.workflows ?? loadWorkflowConfig(workflowsFile);
   // 同意憑證要猜不到：32 bytes 亂數
   const consents = deps.consents ?? createConsentStore({ now: () => new Date(), newToken: () => randomBytes(32).toString('hex') });
@@ -144,8 +148,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   handlers[TEMPLE_VIEW_NODE] = boards.handleGenerated;
 
   registerTempleRoutes(app, deps.db);
-  registerSeriesRoutes(app, deps.db, clock);
-  registerVideoRoutes(app, deps.db, clock, boards);
+  registerScenarioPackRoutes(app, scenarioPacks);
+  registerSeriesRoutes(app, deps.db, clock, scenarioPacks);
+  registerVideoRoutes(app, deps.db, clock, boards, scenarioPacks);
   registerPhotoRoutes(app, deps.db, clock, store);
   registerAssetRoutes(app, deps.db, store);
   registerCostRoutes(app, deps.db, workflows, consents);

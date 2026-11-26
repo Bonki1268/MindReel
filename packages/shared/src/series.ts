@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { IMAGE_MODEL_KEYS, VIDEO_MODEL_KEYS } from './models.js';
+import { TEMPLE_PACK } from './scenarioPacks.js';
 
 // 系列專案（docs/05-Backend-Schema.md「series」）
 
-/** 影片方向的選項；也可以自己寫 */
-export const SERIES_DIRECTIONS = ['歷史故事', '節慶宣傳', '景點導覽', '人物代言'] as const;
+/** 廟埕包的影片方向選項（來自 scenario-packs/temple/pack.json）；也可以自己寫。其他情境包的選項見 GET /api/scenario-packs */
+export const SERIES_DIRECTIONS: readonly string[] = TEMPLE_PACK.directions;
 
 // 影片秒數不在系列設定：每支影片在問卷的「長度」選（使用者 2026-11-05 提出）
 
@@ -28,8 +29,11 @@ const seriesFields = {
   defaultVideoModel: z.enum(VIDEO_MODEL_KEYS, { error: '請從清單選擇影片模型' }),
 };
 
+/** 建立系列時選的情境包代號；省略就是廟埕包。是否存在由後端對照登記表檢查 */
+const scenarioPackField = z.string({ error: '請選擇情境包' }).min(1, { error: '請選擇情境包' });
+
 /** POST /api/series */
-export const createSeriesSchema = z.object(seriesFields);
+export const createSeriesSchema = z.object({ ...seriesFields, scenarioPack: scenarioPackField.optional() });
 export type CreateSeriesInput = z.infer<typeof createSeriesSchema>;
 
 /** PATCH /api/series/:id：只改有傳的欄位 */

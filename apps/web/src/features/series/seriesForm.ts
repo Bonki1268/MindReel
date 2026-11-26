@@ -77,8 +77,8 @@ function isVideoModel(key: string): key is VideoModelKey {
 }
 
 /** 修改系列設定的表單初始值：帶入系列目前的設定；方向不是選項之一時放在「或自己寫」；模型已不在清單時改用預設模型 */
-export function seriesFormFrom(series: Series): SeriesFormState {
-  const isOption = (SERIES_DIRECTIONS as readonly string[]).includes(series.direction);
+export function seriesFormFrom(series: Series, directions: readonly string[] = SERIES_DIRECTIONS): SeriesFormState {
+  const isOption = directions.includes(series.direction);
   return {
     name: series.name,
     visualStyle: series.visualStyle,

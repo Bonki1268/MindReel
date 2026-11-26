@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { imageModelLabel, planBoardViews, viewName, type StandardViewKey, type VideoDetail } from '@templeyard/shared';
+import { PRODUCT_VIDEO_NOT_READY_MESSAGE, imageModelLabel, planBoardViews, viewName, type StandardViewKey, type VideoDetail } from '@templeyard/shared';
 import { useId, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiRequestError, generateTempleBoard, postCostEstimate, regenerateTempleView, reuseTempleBoard } from '../api/client';
@@ -7,6 +7,7 @@ import { BottomActionBar } from '../components/BottomActionBar';
 import { Button } from '../components/Button';
 import { useCostConsent } from '../features/costs/useCostConsent';
 import { PhotoSection } from '../features/photos/PhotoSection';
+import { useScenarioLabels, useScenarioPack } from '../features/series/useScenarioPacks';
 import { useSeriesList } from '../features/series/useSeriesList';
 import { ModelSection } from '../features/videos/ModelSection';
 import { StepBar } from '../features/videos/StepBar';
@@ -27,6 +28,10 @@ export function CreateVideoPage() {
   const replaceView = searchParams.get('view');
   const seriesList = useSeriesList();
   const series = seriesList.data?.find((item) => item.id === sid);
+  // 情境包：決定這個系列建立影片的流程與用詞（電商的商品功能第 16 階段才有）
+  const pack = useScenarioPack(series?.scenarioPack);
+  const labels = useScenarioLabels(series?.scenarioPack);
+  const productNotReady = pack?.subjectType === 'product';
   const detailQuery = useVideoDetail(videoId);
   const detail = detailQuery.data ?? null;
   const [inferred, setInferred] = useState<ReadonlySet<StandardViewKey>>(new Set());
@@ -89,8 +94,13 @@ export function CreateVideoPage() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>建立影片</h1>
-        <p className={styles.intro}>選定寺廟與模型，上傳照片後產生寺廟定裝版。定裝版確認後就能開始創作。</p>
-        <StepBar current={currentStep(progress)} />
+        {productNotReady && (
+          <p className={styles.notice} role="status">
+            {PRODUCT_VIDEO_NOT_READY_MESSAGE}
+          </p>
+        )}
+        {!productNotReady && <p className={styles.intro}>選定{labels.subject}與模型，上傳照片後產生{labels.board}。定裝版確認後就能開始創作。</p>}
+        {!productNotReady && <StepBar current={currentStep(progress)} />}
 
         {seriesList.isSuccess && !series && (
           <p className={styles.error} role="alert">
@@ -104,35 +114,35 @@ export function CreateVideoPage() {
           </p>
         )}
 
-        {detail && replaceView && hasBoard && <ReplaceViewSection detail={detail} viewKey={replaceView} />}
+        {!productNotReady && detail && replaceView && hasBoard && <ReplaceViewSection detail={detail} viewKey={replaceView} />}
 
-        {(!videoId || detail) && (
+        {!productNotReady && (!videoId || detail) && (
           <TempleSection
             seriesId={sid}
             detail={detail}
             onVideoCreated={(id) => setSearchParams({ video: id }, { replace: true })}
           />
         )}
-        {detail && !hasBoard && detail.reusableBoard && <ReuseSection detail={detail} />}
-        {detail && <ModelSection detail={detail} series={series} />}
-        {detail && <PhotoSection detail={detail} inferred={inferred} onToggleInferred={toggleInferred} inferLocked={hasBoard} />}
+        {!productNotReady && detail && !hasBoard && detail.reusableBoard && <ReuseSection detail={detail} />}
+        {!productNotReady && detail && <ModelSection detail={detail} series={series} />}
+        {!productNotReady && detail && <PhotoSection detail={detail} inferred={inferred} onToggleInferred={toggleInferred} inferLocked={hasBoard} />}
         {consent.error && (
           <p className={styles.error} role="alert">
-            產生寺廟定裝版失敗：{consent.error}
+            產生{labels.board}失敗：{consent.error}
           </p>
         )}
       </main>
 
-      {hasBoard && videoId ? (
-        <BottomActionBar note="已產生寺廟定裝版" noteId={noteId}>
+      {productNotReady ? null : hasBoard && videoId ? (
+        <BottomActionBar note={`已產生${labels.board}`} noteId={noteId}>
           <Link className={styles.primaryLink} to={`/videos/${videoId}/temple-board`}>
-            前往寺廟定裝版
+            前往{labels.board}
           </Link>
         </BottomActionBar>
       ) : (
         <BottomActionBar note={bottomNote(progress, estimateText)} noteId={noteId}>
           <Button variant="primary" disabled={!ready || consent.busy} aria-describedby={noteId} onClick={generate}>
-            產生寺廟定裝版
+            產生{labels.board}
           </Button>
         </BottomActionBar>
       )}

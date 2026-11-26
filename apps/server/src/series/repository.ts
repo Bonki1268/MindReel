@@ -1,4 +1,4 @@
-import type { CreateSeriesInput, Series, UpdateSeriesInput } from '@templeyard/shared';
+import type { CreateSeriesInput, ScenarioSeries, UpdateSeriesInput } from '@templeyard/shared';
 import { desc, eq } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { series, type SeriesRow } from '../db/schema.js';
@@ -6,7 +6,7 @@ import { series, type SeriesRow } from '../db/schema.js';
 /** 新資料需要的時間與 ID；測試可注入固定值 */
 export type Clock = { now: () => Date; newId: () => string };
 
-function toSeries(row: SeriesRow): Series {
+function toSeries(row: SeriesRow): ScenarioSeries {
   return {
     id: row.id,
     name: row.name,
@@ -15,17 +15,18 @@ function toSeries(row: SeriesRow): Series {
     defaultImageModel: row.defaultImageModel,
     defaultVideoModel: row.defaultVideoModel,
     questionnaireDefaults: row.questionnaireDefaults ?? null,
+    scenarioPack: row.scenarioPack,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
 }
 
 /** 系列列表：新建立的在前面 */
-export function listSeries(db: AppDatabase): Series[] {
+export function listSeries(db: AppDatabase): ScenarioSeries[] {
   return db.select().from(series).orderBy(desc(series.createdAt), desc(series.id)).all().map(toSeries);
 }
 
-export function createSeries(db: AppDatabase, input: CreateSeriesInput, clock: Clock): Series {
+export function createSeries(db: AppDatabase, input: CreateSeriesInput, clock: Clock): ScenarioSeries {
   const now = clock.now().toISOString();
   const row = db
     .insert(series)
@@ -36,7 +37,7 @@ export function createSeries(db: AppDatabase, input: CreateSeriesInput, clock: C
 }
 
 /** 找不到時回傳 null */
-export function updateSeries(db: AppDatabase, id: string, input: UpdateSeriesInput, clock: Clock): Series | null {
+export function updateSeries(db: AppDatabase, id: string, input: UpdateSeriesInput, clock: Clock): ScenarioSeries | null {
   const row = db
     .update(series)
     .set({ ...input, updatedAt: clock.now().toISOString() })
@@ -47,7 +48,7 @@ export function updateSeries(db: AppDatabase, id: string, input: UpdateSeriesInp
 }
 
 /** 找不到時回傳 null */
-export function findSeries(db: AppDatabase, id: string): Series | null {
+export function findSeries(db: AppDatabase, id: string): ScenarioSeries | null {
   const row = db.select().from(series).where(eq(series.id, id)).get();
   return row ? toSeries(row) : null;
 }

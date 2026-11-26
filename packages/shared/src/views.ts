@@ -1,17 +1,14 @@
 import { z } from 'zod';
+import { TEMPLE_PACK } from './scenarioPacks.js';
 
-// 寺廟定裝版的標準視角清單。
-// 01 PRD 把「標準視角清單」列為待決定；這裡先用 05 的 view_key 範例與設計稿「建立影片」的 5 個視角，
-// 之後決定了只改這份清單。
-export const STANDARD_VIEWS = [
-  { key: 'front_overview', name: '廟前全景' },
-  { key: 'sanchuan_hall', name: '三川殿（山門）' },
-  { key: 'main_hall', name: '正殿內部' },
-  { key: 'courtyard', name: '廟埕' },
-  { key: 'detail_roof', name: '細部特寫' },
-] as const;
+// 寺廟定裝版的標準視角清單：以 scenario-packs/temple/pack.json 的 view_keys 為準（只有這一份來源）。
+// 01 PRD 把「標準視角清單」列為待決定，決定後只改那份設定檔；這裡的型別要跟著改（viewsFromPack.test.ts 會檢查兩者一致）。
+export type StandardViewKey = 'front_overview' | 'sanchuan_hall' | 'main_hall' | 'courtyard' | 'detail_roof';
 
-export type StandardViewKey = (typeof STANDARD_VIEWS)[number]['key'];
+export const STANDARD_VIEWS: readonly { key: StandardViewKey; name: string }[] = TEMPLE_PACK.view_keys as {
+  key: StandardViewKey;
+  name: string;
+}[];
 
 export const STANDARD_VIEW_KEYS = STANDARD_VIEWS.map((v) => v.key) as [StandardViewKey, ...StandardViewKey[]];
 
