@@ -47,4 +47,14 @@
 
 ## 6. 稽核結果
 
-（由稽核者填寫）
+2026-11-26 稽核（test-auditor）：**通過**。
+
+1. 測試沒被動過：`verify-tests-untouched.mjs 8bf4038` 通過；測試提交只新增測試檔，另外只修改 `tests/e2e/steps/fixtures.ts`（掛載第三個測試用情境包 fixture）；實作提交沒有動任何測試檔。
+2. 全部通過：`pnpm typecheck`、`pnpm lint` 通過；`pnpm test:e2e` 423 全過；`pnpm test` 1496 通過、1 失敗，失敗的是 `apps/server/src/studio/scheduleRegeneration.test.ts` 的 beforeEach 逾時（整套並行時 FFmpeg 慢），單獨跑 2 項全過。稽核者沒有自行驗證「紅燈 commit 也會失敗」這一點。
+3. 範圍：F23、F24 有 1 個 feature、17 個場景或大綱（e2e 展開約 21 個）；06 完成條件都有對應測試。稽核者沒有逐條核對 `load.test` 是否涵蓋「features 型別錯」「view_key 重複或格式錯」，只確認 shared 的 `scenarioPacks.test.ts`（195 行）有對應。
+4. 測試不空洞：沒有 `.skip`、`.only`、`expect(true)`；steps 有 26 處斷言（稽核者沒有逐一檢查斷言內容）。
+5. 不花錢、不洩漏：沒有金鑰字串、沒有讀 `.env`、新增套件 0。
+6. 原圖不上雲：本階段沒有碰送往 Comfy Cloud 的路徑，不適用。
+7. 沒有越界：沒有改名、登入、商品功能；使用者的決定都已反映。
+
+輕微問題（不影響通過）：`scheduleRegeneration.test.ts` 整套並行時逾時，建議之後調高逾時或序列執行，否則稽核跑整套會反覆失敗。

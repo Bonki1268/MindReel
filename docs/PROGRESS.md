@@ -1,8 +1,8 @@
 # 開發進度
 
-目前階段: 15
-階段狀態: 完成
-測試提交: 8bf4038
+目前階段: 16
+階段狀態: 未開始
+測試提交:
 
 上面三行給 `/next-stage` 與 `/auto-dev` 讀取，格式不要改。階段狀態：未開始 → 情境 → 紅燈 → 綠燈 → 完成；中途停下來就是「停止」。
 
@@ -60,6 +60,14 @@
 - `prompts` 欄位只驗證格式，不驗證 Prompt Studio 裡有沒有這個指令（`product-view`、`script-proposal` 在第 16、18 階段才建立）。
 - 建立系列的請求可以省略 `scenario_pack`，省略就是 `temple`。
 - 03、04 沒有 v9 畫面規格：沿用 04 的 token 與既有元件，新元件名稱列在階段報告。
+
+**第 15 階段（完成、稽核通過，見 `docs/progress/stage-15.md`）：要你確認**
+
+- [ ] 05 電商 `directions` 列有「自訂」：實作沿用既有的「或自己寫」輸入，`pack.json` 只放四個選項（新品上市、促銷活動、品牌故事、使用教學）。
+- [ ] 介面用詞（`labels`）目前只套在建立影片頁與系列設定頁，其餘畫面（定裝版頁、問卷等）等第 16 階段電商畫面出現時再改讀 labels。
+- [ ] 電商包 `compliance` 詞表先留空，第 18 階段決定最終版本。
+- [ ] `product-view`、`script-proposal` 兩個 prompts 項目只驗格式，指令在第 16、18 階段才建立。
+- [ ] `apps/server/src/studio/scheduleRegeneration.test.ts` 整套並行時 beforeEach 偶爾逾時（單獨跑通過）；建議調高逾時或序列執行。這是舊階段的測試檔，改它要你同意（Claude 不自行改）。
 
 **開工前檢查（2026-11-26）**
 
