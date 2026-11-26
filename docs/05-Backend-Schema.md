@@ -277,3 +277,129 @@ erDiagram
 | `POST /api/assist`、`GET /api/assist/:id`、`POST /api/assist/:id/adopt` | AI 輔助撰寫 |
 | `GET /api/assets/:id` | 讀取本機檔案 |
 
+
+---
+
+## v9 新增（想影，第 15 階段起）
+
+依 `docs/01-PRD-第二階段改版.md`（第二階段改版，v9）的 F23～F34。這一節只列新增與修改；上面的既有資料表與 API 不變，除非下面明確寫到。
+
+### 登入流程（取代上方「第一版不做登入」，第 19 階段起）
+
+- 簡單帳號密碼登入，不做註冊、忘記密碼、權限；各資料表**不加** `owner_id`。
+- 帳號由指令列建立：`pnpm user:create <帳號>`，互動輸入密碼。
+- 密碼以 `node:crypto` 的 scrypt 雜湊（含隨機 salt），不加新的密碼套件。
+- 登入後發 session cookie（`httpOnly`、`SameSite=Lax`，本機不設 `Secure`），有效 7 天。
+- 除了 `GET /api/health` 與 `/api/auth/*`，所有 API 沒有有效 session 時回 401；前端除了 `/login`，所有頁面沒登入時導向 `/login?next=<原路徑>`。
+- 環境變數 `AUTH_DISABLED=1` 時略過登入（第 0～18 階段的情境測試用這個設定執行）。
+
+### 情境包設定檔（不在資料庫）
+
+放在 `scenario-packs/<id>/pack.json`，啟動時以 `packages/shared` 的 Zod schema 驗證，失敗就啟動失敗並說明哪一欄。第一版有 `temple`、`ecommerce` 兩個。
+
+| 欄位 | 說明 |
+| --- | --- |
+| id, name | `temple`／`ecommerce`；顯示名稱「廟埕」／「電商」 |
+| subject_type | `temple`／`product` |
+| labels | 介面用詞，例如 `{ subject: "商品", board: "商品定裝版", subjectPhotos: "商品照" }` |
+| directions | 系列「方向」的選項（廟埕包沿用既有選項；電商包：新品上市、促銷活動、品牌故事、使用教學、自訂） |
+| categories | 電商包的商品類別：服飾配件、3C 家電、居家生活、美妝保養、食品飲料、保健、其他；廟埕包為空陣列 |
+| view_keys | 定裝版視角 `{ key, name }`。電商包：`front`、`angle_45`、`back_side`、`detail`、`package`、`in_use`；廟埕包沿用 `packages/shared/src/views.ts` |
+| features | 開關：`scriptProposals`（F28）、`styleQuestion`（F29）、`productHero`（F27）。電商包全開；**廟埕包全關，維持 v8 流程** |
+| script_structure | 腳本段落 `{ key, name, purpose }`。電商包：`hook` 開頭抓注意、`pain` 痛點或需求、`demo` 商品示範、`benefit` 賣點、`cta` 行動呼籲 |
+| style_options | 風格 `{ key, name, prompt_fragment }`。電商包：`humor` 幽默、`exaggerated` 誇張、`realistic` 真實描述、`warm` 溫馨、`premium` 質感；另有「自己寫」 |
+| default_aspect_ratio, default_duration_sec | 電商包 `9:16`、15；廟埕包 `16:9`、30 |
+| subtitle_safe_area | 依比例的字幕安全區（離上下邊緣的比例），例如 9:16 下緣保留 20% |
+| compliance | `blocked_terms`（依類別，命中時擋下生成）、`warn_terms`（標黃提醒）、`replacements`（建議替代說法）。廟埕包為空 |
+| prompts | 節點代號 → Prompt Studio 的指令 id；電商包新增 `product-view`、`script-proposal`，其他節點可共用既有指令並帶入情境包的片段 |
+
+### 修改的資料表
+
+| 表 | 新增或修改的欄位 | 說明 |
+| --- | --- | --- |
+| series | `scenario_pack` text NOT NULL DEFAULT `'temple'` | 建立後不可更新（後端強制）；既有資料遷移為 `temple` |
+| videos | `subject_type` text NOT NULL DEFAULT `'temple'` | `temple`／`product`，等於系列情境包的 subject_type |
+| videos | `temple_id` 改為 nullable；新增 `product_id` text nullable | 依 subject_type 二選一有值 |
+| videos | `product_snapshot` json nullable | 建立影片時保存的商品資料；之後腳本、字幕、指令都讀這份（比照 `series_snapshot`） |
+| videos | `product_board_version_id` text nullable | 電商影片使用的商品定裝版版本 |
+| videos | `aspect_ratio` text NOT NULL DEFAULT `'16:9'` | `16:9`／`9:16`；`models_locked_at` 有值後不可更新 |
+| videos | `stage` 新增 `script` | 位於 `chat` 與 `questionnaire` 之間，只有 `features.scriptProposals` 開啟時會經過 |
+| photos | `temple_id` 改為 nullable；新增 `product_id` text nullable | 商品照屬於系列中的這件商品；`video_id` 為 null 時 `temple_id`、`product_id` 恰好一個有值 |
+| shots | 新增 `product_hero` integer (0/1) DEFAULT 0、`product_photo_id` text nullable | 商品主鏡頭與指定的商品照（F27）；`product_hero = 1` 時 `product_photo_id` 必填 |
+| assets | `kind` 新增 `product_view`、`hero_frame` | `hero_frame`：商品照依比例置中補底後的首格（本機以 FFmpeg 產生，`cloud_ok` 繼承來源照片） |
+| generations | `node` 新增 `product-view`、`script-proposal` | |
+| confirmations | `point` 新增 `product_board`、`script` | |
+
+問卷的「風格」題不改資料表：存在 `questionnaires.answers`，`questionId` 為 `style`；第一支影片送出時一併寫入 `series.questionnaire_defaults`。
+
+### 新增的資料表
+
+#### `products` 商品
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | text PK | |
+| series_id | text | 只屬於一個電商系列 |
+| name | text | 品名（必填） |
+| brand | text nullable | 品牌 |
+| category | text | 情境包 `categories` 之一（必填） |
+| selling_points | json | 字串陣列，1～5 條（必填至少 1 條） |
+| price | integer nullable | 新台幣元 |
+| price_note | text nullable | 例如「原價 1,280，限時 990」，影片中逐字使用 |
+| specs | text nullable | 規格 |
+| notes | text nullable | 注意事項 |
+| created_at, updated_at | text | |
+
+#### `product_boards`、`product_board_versions`、`product_views` 商品定裝版
+
+結構與規則比照寺廟定裝版。
+
+| 表 | 欄位 | 說明 |
+| --- | --- | --- |
+| product_boards | id, series_id, product_id, current_version_id | 唯一鍵 (series_id, product_id) |
+| product_board_versions | id, board_id, version, image_model, appearance_locks (json), default_lighting, confirmed_at | |
+| product_views | id, board_version_id, view_key, view_name, source (photo／ai_inferred), photo_id (nullable), asset_id, confirmed, created_from_video_id | |
+
+#### `script_proposals` 腳本企劃
+
+| 欄位 | 說明 |
+| --- | --- |
+| id, video_id | |
+| batch | 第幾批（從 1 開始；「再給 3 個」就加 1） |
+| proposals | json：3 個 `{ title, summary, sections: [{ key, content }], fit }`，`sections` 的 key 來自情境包 `script_structure` |
+| selected_index | nullable；選定第幾個（0～2） |
+| custom | text nullable；使用者自己寫的方向（與 selected_index 擇一） |
+| generation_id | 產生它的生成紀錄（Claude 呼叫） |
+| created_at | |
+
+#### `users`、`sessions` 帳號
+
+| 表 | 欄位 | 說明 |
+| --- | --- | --- |
+| users | id, username (unique), password_hash, created_at | |
+| sessions | id, user_id, expires_at, created_at | 登出時刪除該列 |
+
+### v9 新增的後端強制規則
+
+- `series.scenario_pack` 建立後拒絕更新。
+- `videos.models_locked_at` 有值後，也拒絕更新 `aspect_ratio`。
+- 影片的 `subject_type` 必須等於系列情境包的 `subject_type`；電商影片必須有 `product_id`，廟埕影片必須有 `temple_id`。
+- 商品主鏡頭的首格是 `hero_frame` 資產，由商品照本機產生、不送圖片模型；它的來源照片必須是 `cloud_ok = 1` 的去識別照片。
+- 價格、品名、`price_note` 只出現在合成字幕，逐字取自 `product_snapshot`；組裝圖片與影片指令時，不得要求模型畫出文字（指令組裝測試驗證）。
+- 內容檢查（F31）是 `packages/shared` 的純函式：輸入文字與商品類別，回傳 `{ level: block／warn, term, field, suggestion }[]`；任何一格有 `block` 時，`POST .../generate/frames` 與 `.../generate/clips` 回 409，`message: 有不能使用的用語，請先修改`。
+- 腳本企劃不觸發任何付費生成（只呼叫 Claude）。
+
+### v9 新增的 API
+
+| 方法與路徑 | 用途 |
+| --- | --- |
+| `GET /api/scenario-packs` | 列出情境包：id、名稱、labels、預設比例與長度、features |
+| `GET/POST /api/series/:id/products`、`GET/PATCH /api/products/:pid` | 商品列表、新增、讀取、修改（修改只影響之後新增的影片） |
+| `POST /api/products/:pid/photos/originals`、`POST /api/products/:pid/photos`、`PATCH /api/products/:pid/photos/:photoId` | 商品照原圖（只存本機）、去識別後的照片、調整遮蔽 |
+| `GET/PATCH /api/videos/:id/product-board` | 商品定裝版、外觀規範與光線 |
+| `POST /api/videos/:id/product-board/generate`、`.../confirm`、`.../reuse`、`.../versions` | 產生、確認、沿用、另存新版本 |
+| `POST /api/videos/:id/product-board/views/:viewKey/regenerate`、`.../confirm` | 單一視角重生、確認 |
+| `GET /api/videos/:id/script-proposals`、`POST /api/videos/:id/script-proposals` | 列出各批企劃；產生新一批 3 個 |
+| `POST /api/videos/:id/script-proposals/:batch/select` | body `{ index }` 或 `{ custom }`；寫入確認紀錄 `script`，影片階段進到 `questionnaire` |
+| `POST /api/compliance/check` | body `{ category, fields: { [field]: text } }`，回傳問題清單（前端即時檢查用） |
+| `POST /api/auth/login`、`POST /api/auth/logout`、`GET /api/auth/me` | 登入、登出、目前使用者 |
