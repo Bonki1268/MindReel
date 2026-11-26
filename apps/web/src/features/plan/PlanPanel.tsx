@@ -3,6 +3,7 @@ import {
   characterBlockers,
   checkPlan,
   estimateDialogueSec,
+  missingViewName,
   missingViews,
   planVersionLabel,
   withTimeline,
@@ -11,11 +12,14 @@ import {
   type Shot,
   type ShotInput,
 } from '@templeyard/shared';
+import { Plus, TriangleAlert } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ApiRequestError, addSupplementalView, confirmSupplementalView, fetchPlanVersion, generateFrames, postPlanVersion } from '../../api/client';
 import { askNotificationPermission } from '../frames/notify';
 import { notificationApi } from '../frames/useFrameNotification';
 import { Tag } from '../../components/Tag';
+import { BottomActionBar } from '../../components/BottomActionBar';
+import { StudioFooter } from '../studio/StudioFooter';
 import { useCostConsent } from '../costs/useCostConsent';
 import { CharacterCard } from './CharacterCard';
 import { Button } from '../../components/Button';
@@ -158,6 +162,12 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
   }
   const busy = save.isPending;
 
+  const flags: Record<string, 'error' | 'warning'> = {};
+  for (const shot of shots) {
+    if (check.shots[shot.shotKey]?.dialogueOverflow) flags[shot.shotKey] = 'error';
+    else if (missingViewName(shot.viewKey)) flags[shot.shotKey] = 'warning';
+  }
+
   return (
     <section className={styles.panel} aria-labelledby={titleId}>
       <div className={styles.header}>
@@ -165,8 +175,8 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
           分鏡方案
         </h2>
         <div className={styles.versions}>
-          <label htmlFor={versionSelectId}>方案版本</label>
-          <select id={versionSelectId} value={selected} onChange={(event) => setSelected(Number(event.target.value))}>
+          <label htmlFor={versionSelectId}>版本</label>
+          <select id={versionSelectId} aria-label="方案版本" value={selected} onChange={(event) => setSelected(Number(event.target.value))}>
             {[...data.versions].reverse().map((version) => (
               <option key={version.version} value={version.version}>
                 {planVersionLabel(version)}
@@ -192,16 +202,25 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
 
       <div className={styles.overview}>
         <section className={styles.overviewCard} aria-label="風格">
-          <h3 className={styles.overviewTitle}>風格</h3>
+          <h3 className={styles.overviewTitle}>外觀與風格</h3>
           <p>{seriesVisualStyle}</p>
           <p className={styles.meta}>{current.styleNote}</p>
         </section>
+        <section className={styles.overviewCard} aria-label="角色">
+          <h3 className={styles.overviewTitle}>角色</h3>
+          {data.characters.length === 0 ? (
+            <p className={styles.meta}>這版方案沒有角色</p>
+          ) : (
+            data.characters.map((character) => <CharacterCard key={`${character.id}-${character.version.id}`} videoId={videoId} character={character} onChanged={refresh} />)
+          )}
+        </section>
         <section className={styles.overviewCard} aria-label="場景">
-          <h3 className={styles.overviewTitle}>場景</h3>
-          <ul className={styles.plainList}>
+          <h3 className={styles.overviewTitle}>場景・寺廟定裝版</h3>
+          <ul className={styles.views}>
             {data.views.map((view) => (
               <li key={view.viewKey} className={styles.viewItem}>
-                <span>{view.viewName}</span>
+                <span className={styles.viewThumb} aria-hidden="true" />
+                <span className={styles.viewName}>{view.viewName}</span>
                 {view.state === 'generating' && <Tag tone="info">生成中</Tag>}
                 {view.state === 'failed' && <Tag tone="error">生成失敗</Tag>}
                 {view.state === 'ready' && view.source === 'ai_inferred' && (
@@ -214,15 +233,15 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
                 )}
               </li>
             ))}
-            {missing.map((name) => (
-              <li key={`missing-${name}`} className={styles.viewItem}>
-                <span>{`缺少視角：${name}`}</span>
-                <Button disabled={sceneBusy || viewingOld} onClick={() => supplement(name)}>
-                  {`補充視角：${name}`}
-                </Button>
-              </li>
-            ))}
           </ul>
+          {missing.map((name) => (
+            <div key={`missing-${name}`} className={styles.missingView}>
+              <span>{`缺少視角：${name}`}</span>
+              <Button disabled={sceneBusy || viewingOld} onClick={() => supplement(name)}>
+                {`補充視角：${name}`}
+              </Button>
+            </div>
+          ))}
           {(sceneConsent.error || confirmView.isError) && (
             <p className={styles.error} role="alert">
               {sceneConsent.error ?? (confirmView.error instanceof ApiRequestError ? confirmView.error.message : '請再試一次')}
@@ -232,16 +251,7 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
         </section>
       </div>
 
-      <section className={styles.characters} aria-label="角色">
-        <h3 className={styles.overviewTitle}>角色</h3>
-        {data.characters.length === 0 ? (
-          <p className={styles.meta}>這版方案沒有角色</p>
-        ) : (
-          data.characters.map((character) => <CharacterCard key={`${character.id}-${character.version.id}`} videoId={videoId} character={character} onChanged={refresh} />)
-        )}
-      </section>
-
-      <Timeline shots={shots} totalSec={check.totalSec} targetSec={check.targetSec} onChange={changeDurations} disabled={viewingOld || busy} />
+      <Timeline shots={shots} totalSec={check.totalSec} targetSec={check.targetSec} flags={flags} onChange={changeDurations} disabled={viewingOld || busy} />
 
       <ol className={styles.cards} aria-label="分鏡卡片">
         {shots.map((shot, index) => (
@@ -272,36 +282,46 @@ export function PlanPanel({ videoId, data, seriesVisualStyle, imageModel, savedV
         ))}
       </ol>
       {!viewingOld && (
-        <div>
-          <Button disabled={busy} onClick={() => commit(addShot(drafts))}>
-            新增一格
-          </Button>
-        </div>
+        <button type="button" className={styles.addShot} disabled={busy} onClick={() => commit(addShot(drafts))}>
+          <Plus size={18} strokeWidth={1.8} aria-hidden="true" />
+          新增一格
+        </button>
       )}
-
-      <div className={styles.generate}>
-        {blockers.length > 0 ? (
-          <div>
-            <p className={styles.meta}>還不能生成的原因：</p>
-            <ul className={styles.blockers} aria-label="還不能生成的原因">
-              {blockers.map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className={styles.meta}>{`秒數檢查與角色都通過了，按「生成」產生 ${frameCount} 張精緻圖。`}</p>
-        )}
-        <Button variant="primary" disabled={blockers.length > 0 || viewingOld || busy || generateConsent.busy} onClick={generate}>
-          生成
-        </Button>
-      </div>
       {generateConsent.error && (
         <p className={styles.error} role="alert">
           生成失敗：{generateConsent.error}
         </p>
       )}
       {generateConsent.dialog}
+
+      <StudioFooter>
+        <BottomActionBar
+          lead={
+          <div className={styles.generateInfo}>
+            {blockers.length > 0 ? (
+              <div className={styles.blockerRow}>
+                <p className={styles.blockerHead}>
+                  <TriangleAlert size={16} strokeWidth={1.8} aria-hidden="true" />
+                  {`還有 ${blockers.length} 項待處理：`}
+                </p>
+                <ul className={styles.blockers} aria-label="還不能生成的原因">
+                  {blockers.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className={styles.blockerOk}>{`秒數檢查與角色都通過了，按「生成」產生 ${frameCount} 張精緻圖。`}</p>
+            )}
+            <p className={styles.cost}>費用預估：精緻圖 {frameCount} 張；按下「生成」後會先列出金額，你同意才開始</p>
+          </div>
+          }
+        >
+          <Button variant="primary" disabled={blockers.length > 0 || viewingOld || busy || generateConsent.busy} onClick={generate}>
+            生成
+          </Button>
+        </BottomActionBar>
+      </StudioFooter>
     </section>
   );
 }

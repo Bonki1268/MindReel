@@ -16,45 +16,104 @@
   font-weight: 700;
 }
 
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* 三欄：左側對話、中間預覽與時間軸、右側設定；各欄自己捲動 */
 .layout {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(280px, 380px);
-  gap: var(--space-5);
-  align-items: start;
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
-  padding: var(--space-5) var(--space-6) var(--space-10);
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(300px, 380px);
+  min-height: 0;
 }
 
-.center,
-.settings {
+.layout > aside {
+  background: var(--color-surface);
+}
+
+.center {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
   min-width: 0;
+  min-height: 0;
+  padding: 20px var(--space-6) var(--space-8);
+  overflow-y: auto;
 }
 
+.settings {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px 20px 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.settingsTitle {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* 上方縮圖列：每格一張手繪稿縮圖加序號，目前這格 2px 深色框 */
 .thumbs {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
+  padding-bottom: var(--space-1);
+  overflow-x: auto;
 }
 
 .thumbs a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-input);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 88px;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
+  background: var(--color-surface);
   color: var(--color-text);
+  font-size: 12px;
+  text-align: center;
   text-decoration: none;
 }
 
 .thumbs a[aria-current='page'] {
   border: 2px solid var(--color-text);
-  font-weight: 700;
+  padding: 3px;
 }
 
 .notice {
@@ -73,13 +132,18 @@
 
 .preview {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--space-3);
+  align-items: start;
+}
+
+.preview > :first-child {
+  grid-row: span 3;
 }
 
 .figure {
   display: grid;
-  gap: var(--space-1);
+  gap: 6px;
   margin: 0;
 }
 
@@ -88,14 +152,13 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: var(--radius-control);
+  border-radius: 10px;
   background: var(--color-surface-muted);
 }
 
 .empty {
-  display: grid;
-  place-items: center;
-  color: var(--color-text-muted);
+  border: 2px dashed var(--color-border-input);
+  background: var(--color-ai-surface);
 }
 
 .figure figcaption {
@@ -103,40 +166,104 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  font-size: 14px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .timeline {
-  padding: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
 }
 
-.timeline ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-2);
-  padding: 0;
-  list-style: none;
+.timelineTitle {
+  margin: 0 0 var(--space-3);
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .timeline p {
-  margin: 0;
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+.tracks {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px var(--space-2);
+  font-size: 13px;
+}
+
+.trackLabel {
+  color: var(--color-text-muted);
+}
+
+.track {
+  position: relative;
+  height: 28px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-muted);
+}
+
+.endMark,
+.keyMark {
+  position: absolute;
+  top: 50%;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.endMark {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--color-text);
+}
+
+.keyMark {
+  width: 18px;
+  height: 18px;
+  background: var(--color-ai);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.voiceBar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: 6px;
+  background: var(--color-success-surface);
+}
+
+.ruler {
+  position: relative;
+  height: 18px;
+  color: var(--color-text-muted);
+}
+
+.ruler span {
+  position: absolute;
+  transform: translateX(-50%);
 }
 
 .settings details {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings details:first-of-type {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .settings summary {
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -214,14 +341,68 @@
 }
 
 .actions {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  margin: auto -20px 0;
+  padding: var(--space-3) 20px var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 @media (max-width: 1100px) {
+  .shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    padding: var(--space-4) var(--space-4) var(--space-10);
   }
+
+  .center,
+  .settings {
+    overflow: visible;
+  }
+
+  .settings {
+    border-left: 0;
+  }
+}
+
+/* 鏡頭：景別與運鏡、運鏡速度與鏡頭角度兩兩並排 */
+.twoCol {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-3);
+}
+
+.twoCol > summary {
+  grid-column: 1 / -1;
+}
+
+.preview > :first-child:only-child {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.settings summary {
+  list-style: none;
+}
+
+.settings summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 時間軸下方的文字說明：首格、關鍵畫格、末格、台詞的時間點 */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }

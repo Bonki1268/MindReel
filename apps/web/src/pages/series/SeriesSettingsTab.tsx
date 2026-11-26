@@ -13,7 +13,6 @@ import {
   type QuestionnaireDefaultsView,
   type Series,
   type Settings,
-  type VideoModelKey,
 } from '@templeyard/shared';
 import { Info, TriangleAlert } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
@@ -42,6 +41,7 @@ import {
 } from '../../features/series/settingsForm';
 import { SERIES_LIST_KEY } from '../../features/series/useSeriesList';
 import { ModelPicker } from '../../features/videos/ModelSection';
+import { VIDEO_MODEL_OPTIONS, isVideoModelKey } from '../../features/videos/videoModelOptions';
 import { useSeriesPage } from './SeriesShell';
 import styles from './SeriesSettingsTab.module.css';
 
@@ -269,14 +269,16 @@ function SettingsForm({
               onChange={(defaultImageModel) => update({ defaultImageModel })}
             />
             <p className={styles.help}>構圖草圖用同系列的 Nano Banana 2 Lite；其他圖片模型尚未開放。</p>
-            <ModelPicker<VideoModelKey>
+            <ModelPicker<string>
               legend="影片模型"
-              models={VIDEO_MODELS}
+              models={VIDEO_MODEL_OPTIONS}
               value={form.series.defaultVideoModel}
               seriesDefault={DEFAULT_VIDEO_MODEL}
               defaultLabel="系統預設"
               disabled={false}
-              onChange={(defaultVideoModel) => update({ defaultVideoModel })}
+              onChange={(defaultVideoModel) => {
+                if (isVideoModelKey(defaultVideoModel)) update({ defaultVideoModel });
+              }}
             />
             {lipSync && (
               <p role="status" className={styles.warning}>

@@ -246,7 +246,8 @@ export function createPlanService(deps: {
           user: rendered.request.messages.map((m) => m.content).join('\n\n'),
           tool: SUBMIT_PLAN_TOOL,
           subject: '分鏡方案',
-          maxTokens: 8000,
+          // 中文方案每格欄位多，8000 曾被截斷（2026-11-06）；SDK 非串流上限約 21000
+          maxTokens: 16000,
         });
         output = result.value;
       } catch (error: unknown) {

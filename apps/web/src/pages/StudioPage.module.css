@@ -1,91 +1,66 @@
-.header {
+/* 創作工作區：頂端列、左側對話、右側面板、底部操作列；整頁固定在視窗高度，左右兩欄各自捲動 */
+.shell {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4) var(--space-6);
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: var(--space-5) var(--space-6) 0;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
 }
 
-.title {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  margin: 0;
-  font-size: 14px;
-}
-
-.facts div {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.facts dt {
-  color: var(--color-text-muted);
-}
-
-.facts dd {
-  margin: 0;
-  color: var(--color-text);
-}
-
-.cost {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.layout {
+.body {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: start;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: var(--space-5) var(--space-6) var(--space-10);
+  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  min-height: 0;
+  background: var(--color-bg);
+}
+
+.body > aside {
+  background: var(--color-surface);
 }
 
 .workspace {
-  display: grid;
-  gap: var(--space-4);
   min-width: 0;
+  min-height: 0;
+  padding: var(--space-8) var(--space-8) var(--space-10);
+  overflow-y: auto;
 }
 
-.panelPicker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 14px;
-  color: var(--color-text-secondary);
+.footerSlot:empty {
+  display: none;
 }
 
-.panelPicker select {
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @media (max-width: 840px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--space-4) var(--space-4) var(--space-10);
+  .shell {
+    height: auto;
+    min-height: 100vh;
   }
 
   .header {
-    padding: var(--space-4) var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .body > aside {
+    height: auto;
+    max-height: 60vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .workspace {
+    padding: var(--space-5) var(--space-4) var(--space-8);
+    overflow: visible;
   }
 }

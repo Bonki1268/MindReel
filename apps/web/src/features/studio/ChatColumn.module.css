@@ -1,22 +1,33 @@
 .column {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
   min-width: 0;
-  padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
 }
 
+/* 創作工作區左側整欄：貼齊左邊、右邊一條分隔線，高度由上層決定 */
+.rail {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-right: 1px solid var(--color-border);
+  border-radius: 0;
+}
+
 .log {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 14px;
   flex: 1;
   min-height: 240px;
-  max-height: 70vh;
+  padding: var(--space-5);
   overflow-y: auto;
+}
+
+.rail .log {
+  min-height: 0;
 }
 
 .empty,
@@ -26,6 +37,18 @@
   color: var(--color-text-muted);
 }
 
+/* 還沒有對話時助理先說的一句話：樣子跟助理的訊息一樣，但不是一則訊息 */
+.agentNote {
+  align-self: flex-start;
+  max-width: 92%;
+  margin: 0;
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
 .error {
   margin: 0;
   color: var(--color-error);
@@ -33,19 +56,26 @@
 
 .user,
 .agent {
+  display: grid;
+  gap: var(--space-2);
   max-width: 92%;
-  padding: var(--space-3);
+  padding: 14px var(--space-4);
   border-radius: var(--radius-card);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .user {
   align-self: flex-end;
-  background: var(--color-surface-muted);
+  max-width: 85%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-text);
+  color: var(--color-surface);
 }
 
 .agent {
   align-self: flex-start;
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
 }
 
 .line {
@@ -53,14 +83,10 @@
   overflow-wrap: anywhere;
 }
 
-.line + .line {
-  margin-top: var(--space-1);
-}
-
 .tools {
   display: grid;
   gap: var(--space-1);
-  margin: var(--space-2) 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -72,17 +98,79 @@
   gap: var(--space-2);
 }
 
+.toolLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.toolFailed {
+  color: var(--color-error);
+}
+
 .toolSummary {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
 
 .composer {
-  display: grid;
+  display: flex;
+  align-items: flex-end;
   gap: var(--space-2);
-  justify-items: end;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
-.composer > :first-child {
-  justify-self: stretch;
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 140px;
+  padding: 10px var(--space-3);
+  border: 1px solid var(--color-border-input);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.6;
+  resize: none;
+  field-sizing: content;
+}
+
+.send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.heading {
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
 }

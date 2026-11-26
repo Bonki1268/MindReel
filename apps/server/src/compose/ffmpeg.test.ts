@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildAss, subtitleEvents } from '@templeyard/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FINAL_SPEC, createFfmpeg, type Ffmpeg } from './ffmpeg.js';
+import { FINAL_SPEC, createFfmpeg, finishingPlan, type Ffmpeg } from './ffmpeg.js';
 
 // 06 第 11 階段完成條件：以測試素材跑合成，輸出 1920×1080、24 fps、長度與卡片秒數總和一致；字幕文字與卡片字幕欄一致。
 // 用本機 FFmpeg 產生測試素材（不花錢）
@@ -122,6 +122,77 @@ describe('合成成品', () => {
     const subtitlesPath = path.join(dir, 'subs3.ass');
     writeFileSync(subtitlesPath, buildAss([]));
     await expect(ffmpeg.compose({ clips: [{ path: broken, durationSec: 3 }], music: null, subtitlesPath, output: path.join(dir, 'x.mp4') })).rejects.toThrow('合成失敗');
+  });
+});
+
+/** 成品某一段的整合響度（LUFS） */
+function segmentLoudness(file: string, fromSec: number, seconds: number): number {
+  const result = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-ss', String(fromSec), '-t', String(seconds), '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' });
+  return Number(/I:\s+(-?[\d.]+) LUFS/.exec(result.stderr.split('Summary:').at(-1) ?? '')?.[1]);
+}
+
+function meanOf(frame: Uint8Array): number {
+  return frame.reduce((sum, value) => sum + value, 0) / frame.length;
+}
+
+describe('成品後製', () => {
+  it('各格音量不同時拉到相同響度，剪接後不會一格大聲一格小聲', async () => {
+    const make = (name: string, volume: number) => {
+      const file = path.join(dir, name);
+      execFileSync('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-y',
+        '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=24:duration=4',
+        '-f', 'lavfi', '-i', 'sine=frequency=440:duration=4',
+        '-af', `volume=${volume}`,
+        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'ultrafast', '-c:a', 'aac',
+        file,
+      ]);
+      return file;
+    };
+    const subtitlesPath = path.join(dir, 'subs-level.ass');
+    writeFileSync(subtitlesPath, buildAss([]));
+    const output = path.join(dir, 'final-level.mp4');
+    // 兩格相差約 7 dB（實際成品裡第 1 格旁白比其他格大聲約 6 dB）
+    const loud = make('loud.mp4', 1);
+    const soft = make('soft.mp4', 0.45);
+    expect(segmentLoudness(loud, 0, 4) - segmentLoudness(soft, 0, 4)).toBeGreaterThan(6);
+    await ffmpeg.compose({ clips: [{ path: loud, durationSec: 4 }, { path: soft, durationSec: 4 }], music: null, subtitlesPath, output });
+
+    const first = segmentLoudness(output, 1, 2);
+    const second = segmentLoudness(output, 5, 2);
+    expect(Math.abs(first - second)).toBeLessThan(2);
+  });
+
+  it('片頭從黑畫面淡入、片尾淡出到黑畫面，中段是正常畫面', async () => {
+    const subtitlesPath = path.join(dir, 'subs-fade.ass');
+    writeFileSync(subtitlesPath, buildAss([]));
+    const output = path.join(dir, 'final-fade.mp4');
+    await ffmpeg.compose({ clips: [{ path: makeClip('g.mp4', 4), durationSec: 4 }, { path: makeClip('h.mp4', 4), durationSec: 4 }], music: null, subtitlesPath, output });
+
+    const size = { width: 32, height: 18 };
+    const start = meanOf(await ffmpeg.grayFrame(output, 0, size));
+    const middle = meanOf(await ffmpeg.grayFrame(output, 4, size));
+    const end = meanOf(await ffmpeg.grayFrame(output, 7.9, size));
+    expect(start).toBeLessThan(25);
+    expect(end).toBeLessThan(25);
+    expect(middle).toBeGreaterThan(60);
+  });
+});
+
+describe('後製參數', () => {
+  it('響度不同的格子給不同增益，拉到同一個目標；量不到響度的格子不動', () => {
+    const plan = finishingPlan([3, 3, 3], [-17, -23, null]);
+    expect(plan.gainsDb).toEqual([-6, 0, 0]);
+  });
+
+  it('增益有上下限：太小聲最多加 6 dB，太大聲最多減 12 dB', () => {
+    expect(finishingPlan([3, 3], [-40, -5]).gainsDb).toEqual([6, -12]);
+  });
+
+  it('成品很短時，淡入淡出與交叉淡化跟著縮短，不吃掉整格', () => {
+    const plan = finishingPlan([0.4], [null]);
+    expect(plan.fadeInSec + plan.fadeOutSec).toBeLessThan(0.4);
+    expect(plan.audioOverlapSec).toBeLessThanOrEqual(0.1);
   });
 });
 

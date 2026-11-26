@@ -14,6 +14,7 @@ import { patchVideo } from '../../api/client';
 import { Tag } from '../../components/Tag';
 import styles from './ModelSection.module.css';
 import { useUpdateVideoDetail } from './useVideoDetail';
+import { VIDEO_MODEL_OPTIONS, isVideoModelKey } from './videoModelOptions';
 
 type ModelSectionProps = { detail: VideoDetail; series: Series | undefined };
 
@@ -54,11 +55,13 @@ export function ModelSection({ detail, series }: ModelSectionProps) {
       />
       <ModelPicker
         legend="影片模型"
-        models={VIDEO_MODELS}
+        models={VIDEO_MODEL_OPTIONS}
         value={video.videoModel}
         seriesDefault={series?.defaultVideoModel}
         disabled={locked || choose.isPending}
-        onChange={(videoModel) => choose.mutate({ videoModel })}
+        onChange={(videoModel) => {
+          if (isVideoModelKey(videoModel)) choose.mutate({ videoModel });
+        }}
       />
 
       {noAudio && (
@@ -78,7 +81,7 @@ export function ModelSection({ detail, series }: ModelSectionProps) {
 
 type ModelPickerProps<K extends string> = {
   legend: string;
-  models: readonly (ModelInfo & { key: K })[];
+  models: readonly (ModelInfo & { key: K; unavailable?: boolean })[];
   value: string;
   seriesDefault: string | undefined;
   disabled: boolean;
@@ -104,7 +107,7 @@ export function ModelPicker<K extends string>({ legend, models, value, seriesDef
                 aria-pressed={model.key === value}
                 aria-label={model.label}
                 aria-describedby={descriptionId}
-                disabled={disabled}
+                disabled={disabled || model.unavailable}
                 onClick={() => {
                   if (model.key !== value) onChange(model.key);
                 }}
@@ -114,7 +117,7 @@ export function ModelPicker<K extends string>({ legend, models, value, seriesDef
                   {model.key === seriesDefault && <Tag>{defaultLabel}</Tag>}
                 </span>
                 <span id={descriptionId} className={styles.optionDescription}>
-                  <span>{model.features}</span> <span className={styles.price}>{referencePriceText(model.referencePrice)}</span>
+                  <span>{model.features}</span> {!model.unavailable && <span className={styles.price}>{referencePriceText(model.referencePrice)}</span>}
                 </span>
               </button>
             </li>

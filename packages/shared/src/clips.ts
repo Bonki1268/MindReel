@@ -118,7 +118,8 @@ export function buildAss(events: readonly SubtitleEvent[], options: { font?: str
     ASS_FORMAT,
     ...events.map((event) => {
       const text = event.text.replace(/[{}]/g, '').replace(/\r?\n/g, '\\N');
-      return `Dialogue: 0,${assTime(event.startSec)},${assTime(event.endSec)},Default,,0,0,0,,${text}`;
+      // 字幕淡入淡出 150 毫秒，不在剪接點突然跳出
+      return `Dialogue: 0,${assTime(event.startSec)},${assTime(event.endSec)},Default,,0,0,0,,{\\fad(150,150)}${text}`;
     }),
   ];
   return `${lines.join('\n')}\n`;
@@ -132,7 +133,7 @@ export function assDialogues(ass: string): string[] {
     .map((line) => {
       // Text 是第 10 個欄位，之後的逗號都屬於文字
       const fields = line.slice('Dialogue:'.length).split(',');
-      return fields.slice(9).join(',').replace(/\\N/g, '\n');
+      return fields.slice(9).join(',').replace(/\{[^}]*\}/g, '').replace(/\\N/g, '\n');
     });
 }
 

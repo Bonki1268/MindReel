@@ -51,6 +51,9 @@ When(/^我在「([^」]+)」的「或自己寫」填入「([^」]+)」$/, async 
 });
 
 When(/^我按下「([^」]+)」$/, async ({ page }, name: string) => {
+  // 分鏡卡片的上移、下移、複製、刪除收在「…」更多操作裡：先打開那一格的選單
+  const cardAction = /^(?:上移|下移|複製|刪除)：(第 \d+ 格)$/.exec(name);
+  if (cardAction) await page.getByRole('button', { name: `${cardAction[1]}的更多操作`, exact: true }).click();
   await page.getByRole('button', { name, exact: true }).click();
 });
 

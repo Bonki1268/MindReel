@@ -1,0 +1,28 @@
+.sketch {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px dashed var(--color-border-input);
+  border-radius: var(--radius-control);
+  background: var(--color-ai-surface);
+}
+
+.lines {
+  fill: none;
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 人物用白底蓋住後面的線，才看得出誰在前面 */
+.figure {
+  fill: var(--color-ai-surface);
+  stroke-width: 1.8;
+}
+
+/* 運鏡的箭頭用主色，跟場景的線分開 */
+.motion {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}

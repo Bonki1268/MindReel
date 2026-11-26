@@ -40,6 +40,9 @@ import { planKey } from '../features/plan/PlanPanel';
 import { draftFromShot, isDirty, patchFrom, percentBox, type ShotDraft } from '../features/shotDetail/shotDraft';
 import { ChatColumn } from '../features/studio/ChatColumn';
 import { useStudioChat } from '../features/studio/useStudioChat';
+import { WorkspaceHeader } from '../features/studio/WorkspaceHeader';
+import { ShotSketch } from '../features/plan/ShotSketch';
+import { sketchCaption, sketchSpec } from '../features/plan/sketchSpec';
 import page from './CreateVideoPage.module.css';
 import styles from './ShotDetailPage.module.css';
 
@@ -98,17 +101,28 @@ export function ShotDetailPage() {
   // 費用確認放在頁面層：儲存後編輯區會依新的卡片重建，對話框不能跟著消失
   const consent = useCostConsent(vid);
 
+  const video = useQuery({ queryKey: ['video', vid], queryFn: () => fetchVideoDetail(vid) });
+  const seq = detail.data?.shot.seq;
+
   return (
-    <div className={page.page}>
-      <header className={styles.header}>
-        <Link to="/" className={page.brand}>
-          <span className={page.mark} aria-hidden="true">
-            廟
-          </span>
-          廟埕影室
-        </Link>
-        <h1 className={styles.title}>{detail.data ? `分鏡細修・第 ${detail.data.shot.seq} 格` : '分鏡細修'}</h1>
-      </header>
+    <div className={styles.shell}>
+      {video.data ? (
+        <WorkspaceHeader
+          videoId={vid}
+          title={seq ? `分鏡細修・第 ${seq} 格` : '分鏡細修'}
+          crumbs={[
+            { label: video.data.temple.name },
+            { label: '分鏡方案', to: `/videos/${vid}/studio?panel=${from}` },
+            { label: seq ? `細修第 ${seq} 格` : '細修' },
+          ]}
+          imageModel={video.data.video.imageModel}
+          videoModel={video.data.video.videoModel}
+        />
+      ) : (
+        <header className={styles.header}>
+          <h1 className={styles.title}>{seq ? `分鏡細修・第 ${seq} 格` : '分鏡細修'}</h1>
+        </header>
+      )}
       {detail.isError && (
         <main className={page.main}>
           <p className={page.error} role="alert">
@@ -124,7 +138,19 @@ export function ShotDetailPage() {
           detail={detail.data}
           plan={plan.data}
           consent={consent}
-          chat={<ChatColumn messages={chat.messages} live={chat.live} sending={chat.sending} error={chat.error} onSend={(content) => void chat.send(content)} inputLabel="對 Agent 說（只針對這一格）" />}
+          chat={
+            <ChatColumn
+              rail
+              heading={`對話只針對第 ${detail.data.shot.seq} 格`}
+              placeholder="例如：讓她轉身慢一點"
+              messages={chat.messages}
+              live={chat.live}
+              sending={chat.sending}
+              error={chat.error}
+              onSend={(content) => void chat.send(content)}
+              inputLabel="對 Agent 說（只針對這一格）"
+            />
+          }
         />
       )}
     </div>
@@ -217,8 +243,15 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
       <div className={styles.center}>
         <nav aria-label="分鏡切換" className={styles.thumbs}>
           {plan.plan?.shots.map((s) => (
-            <Link key={s.shotKey} to={linkTo(s.shotKey)} aria-current={s.shotKey === shot.shotKey ? 'page' : undefined} onClick={(event) => onSwitch(event, s.shotKey)}>
-              {`第 ${s.seq} 格`}
+            <Link
+              key={s.shotKey}
+              to={linkTo(s.shotKey)}
+              aria-label={`第 ${s.seq} 格`}
+              aria-current={s.shotKey === shot.shotKey ? 'page' : undefined}
+              onClick={(event) => onSwitch(event, s.shotKey)}
+            >
+              <ShotSketch spec={sketchSpec(s)} label={sketchCaption(s, '')} />
+              <span aria-hidden="true">{s.seq}</span>
             </Link>
           ))}
         </nav>
@@ -262,7 +295,9 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
         </section>
 
         <section className={styles.timeline} aria-label="單格時間軸">
-          <ul>
+          <h2 className={styles.timelineTitle}>{`這一格的時間軸・${shot.durationSec} 秒`}</h2>
+          <TimelineTracks durationSec={shot.durationSec} keyframeTimes={shot.keyframesEnabled ? shot.keyframeTimes : []} dialogueSec={estimate} />
+          <ul className={styles.legend}>
             <li>首格 0:00</li>
             {(shot.keyframesEnabled ? shot.keyframeTimes : []).map((t) => (
               <li key={t}>{`關鍵畫格 ${clockWithTenths(t)}`}</li>
@@ -279,6 +314,7 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
       </div>
 
       <section className={styles.settings} aria-label="設定">
+        <h2 className={styles.settingsTitle}>{`第 ${shot.seq} 格・${formatClock(shot.startSec)}–${formatClock(shot.startSec + shot.durationSec)}`}</h2>
         <details open aria-label="內容">
           <summary>內容</summary>
           <TextField label="畫面內容" multiline value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
@@ -290,7 +326,7 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
           <TextField label="秒數" value={String(draft.durationSec)} onChange={(value) => setDraft({ ...draft, durationSec: Number(value) || 0 })} />
         </details>
 
-        <details open aria-label="鏡頭">
+        <details open aria-label="鏡頭" className={styles.twoCol}>
           <summary>鏡頭</summary>
           <Select label="景別" value={draft.shotSize} options={[...SHOT_SIZES]} onChange={(value) => setDraft({ ...draft, shotSize: value as ShotDraft['shotSize'] })} />
           <Select label="運鏡" value={draft.cameraMove} options={[...new Set([...CAMERA_MOVES, draft.cameraMove].filter(Boolean))]} onChange={(cameraMove) => setDraft({ ...draft, cameraMove })} />
@@ -459,7 +495,7 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
           </p>
         )}
         <div className={styles.actions}>
-          <Button variant="primary" disabled={!dirty || Boolean(keyframeError) || save.isPending} onClick={() => save.mutate()}>
+          <Button disabled={!dirty || Boolean(keyframeError) || save.isPending} onClick={() => save.mutate()}>
             儲存這一格
           </Button>
           <Button
@@ -473,7 +509,9 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
           >
             重生這一格
           </Button>
-          <Button onClick={() => navigate(`/videos/${videoId}/studio?panel=${from}`)}>完成這一格</Button>
+          <Button variant="primary" onClick={() => navigate(`/videos/${videoId}/studio?panel=${from}`)}>
+            完成這一格
+          </Button>
         </div>
         {consent.dialog}
       </section>
@@ -483,6 +521,33 @@ function Editor({ videoId, from, detail, plan, chat, consent }: EditorProps) {
 
 function errorText(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : error instanceof Error ? error.message : '請再試一次';
+}
+
+/** 單格時間軸的圖：畫格軌（首格、關鍵畫格、末格）、旁白軌、秒數尺；文字版在旁邊的清單裡，這裡只給眼睛看 */
+function TimelineTracks({ durationSec, keyframeTimes, dialogueSec }: { durationSec: number; keyframeTimes: number[]; dialogueSec: number | null }) {
+  const at = (sec: number) => `${(Math.min(sec, durationSec) / Math.max(durationSec, 1)) * 100}%`;
+  return (
+    <div className={styles.tracks} aria-hidden="true">
+      <span className={styles.trackLabel}>畫格</span>
+      <div className={styles.track}>
+        <i className={styles.endMark} style={{ left: 0 }} />
+        {keyframeTimes.map((t) => (
+          <i key={t} className={styles.keyMark} style={{ left: at(t) }} />
+        ))}
+        <i className={styles.endMark} style={{ left: '100%' }} />
+      </div>
+      <span className={styles.trackLabel}>旁白</span>
+      <div className={styles.track}>{dialogueSec !== null && <i className={styles.voiceBar} style={{ width: at(dialogueSec) }} />}</div>
+      <span className={styles.trackLabel}>秒</span>
+      <div className={styles.ruler}>
+        {Array.from({ length: Math.floor(durationSec) + 1 }, (_, sec) => (
+          <span key={sec} style={{ left: at(sec) }}>
+            {sec}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function FrameFigure({ name, frame, caption, uploaded }: { name: string; frame: Frame | null; caption?: string | undefined; uploaded?: boolean | undefined }) {

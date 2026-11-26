@@ -10,10 +10,13 @@ export type AIAssistButtonProps = {
   field?: string;
   /** 按鈕文字，預設「AI 幫我寫」；例如寺廟歷史用「AI 整理成條列」（03 App Flow） */
   label?: string;
+  /** 還沒開放時直接停用（不顯示原因文字） */
+  disabled?: boolean;
+  title?: string;
 };
 
 /** 「AI 幫我寫」：白底、金色邊框與文字、星芒圖示、全圓角 */
-export function AIAssistButton({ onClick, disabledReason, field, label = 'AI 幫我寫' }: AIAssistButtonProps) {
+export function AIAssistButton({ onClick, disabledReason, field, label = 'AI 幫我寫', disabled = false, title }: AIAssistButtonProps) {
   const reasonId = useId();
   return (
     <span className={styles.wrapper}>
@@ -21,7 +24,8 @@ export function AIAssistButton({ onClick, disabledReason, field, label = 'AI 幫
         type="button"
         className={styles.button}
         onClick={onClick}
-        disabled={Boolean(disabledReason)}
+        disabled={disabled || Boolean(disabledReason)}
+        title={title}
         aria-describedby={disabledReason ? reasonId : undefined}
       >
         <Sparkles size={16} strokeWidth={1.8} aria-hidden="true" />

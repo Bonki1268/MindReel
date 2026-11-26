@@ -10,11 +10,13 @@ export type TimelineProps = {
   totalSec: number;
   targetSec: number;
   /** 邊界移動後每一格的秒數 */
+  /** 有問題的格子：對白放不下標紅、缺少視角標黃 */
+  flags?: Record<string, 'error' | 'warning'>;
   onChange: (durations: number[]) => void;
   disabled?: boolean;
 };
 
-export function Timeline({ shots, totalSec, targetSec, onChange, disabled = false }: TimelineProps) {
+export function Timeline({ shots, totalSec, targetSec, flags = {}, onChange, disabled = false }: TimelineProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const durations = shots.map((shot) => shot.durationSec);
   const scale = Math.max(totalSec, targetSec, 1);
@@ -54,14 +56,21 @@ export function Timeline({ shots, totalSec, targetSec, onChange, disabled = fals
 
   return (
     <section className={styles.timeline} aria-label="時間軸">
-      <div className={styles.summary}>
-        <span>{`總長度 ${totalSec} 秒／目標長度 ${targetSec} 秒`}</span>
-        {over && <span className={styles.over}>超過目標長度</span>}
+      <div className={styles.head}>
+        <h3 className={styles.title}>分鏡</h3>
+        <div className={styles.summary}>
+          <span>{`總長度 ${totalSec} 秒／目標長度 ${targetSec} 秒`}</span>
+          {over && <span className={styles.over}>超過目標長度</span>}
+        </div>
       </div>
       <div className={styles.bar} ref={barRef}>
         <ol className={styles.segments}>
           {shots.map((shot) => (
-            <li key={shot.shotKey} className={styles.segment} style={{ width: `${(shot.durationSec / scale) * 100}%` }}>
+            <li
+              key={shot.shotKey}
+              className={`${styles.segment} ${flags[shot.shotKey] === 'error' ? styles.segmentError : flags[shot.shotKey] === 'warning' ? styles.segmentWarning : ''}`}
+              style={{ width: `${(shot.durationSec / scale) * 100}%` }}
+            >
               <span className={styles.segmentLabel}>{shot.seq}</span>
               <span className={styles.segmentTime}>
                 {formatClock(shot.startSec)}–{formatClock(shot.startSec + shot.durationSec)}

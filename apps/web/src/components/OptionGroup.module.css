@@ -1,4 +1,5 @@
 .group {
+  display: flow-root;
   margin: 0;
   padding: 0;
   border: 0;
@@ -8,12 +9,13 @@
 .legend {
   margin-bottom: var(--space-2);
   padding: 0;
-  font-size: 15px;
+  font-size: var(--field-label-size, 15px);
   font-weight: 700;
   color: var(--color-text);
 }
 
 .options {
+  clear: both;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -57,7 +59,7 @@
 }
 
 .otherInput {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
   min-height: 44px;
   padding: 0 var(--space-3);
@@ -68,6 +70,15 @@
   font: inherit;
 }
 
+/* 來源標籤等：跟群組標題同一行、靠右 */
 .legendAccessory {
-  margin: calc(var(--space-1) * -1) 0 var(--space-2);
+  float: right;
+  max-width: 60%;
+  margin: calc(-1.65 * var(--field-label-size, 15px) - var(--space-2) + 1px) 0 0;
+  text-align: right;
+}
+
+/* 已經填了自己的話：輸入框改成 2px 深色框，跟選取的選項一樣 */
+.otherInput:not(:placeholder-shown) {
+  border: 2px solid var(--color-text);
 }

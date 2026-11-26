@@ -1,0 +1,160 @@
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 820px;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.head {
+  display: grid;
+  gap: 6px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.lead {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* 每一題一張白色卡片；題目標題 17px */
+.question {
+  container-type: inline-size;
+  --field-label-size: 17px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.accessory {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.badgeUser {
+  background: var(--color-info-surface);
+  color: var(--color-info);
+}
+
+.badgeDefault {
+  background: var(--color-warning-surface);
+  color: var(--color-ai-text);
+}
+
+.systemNote {
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.fieldset {
+  display: flow-root;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: var(--field-label-size, 17px);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.legendAccessory {
+  float: right;
+  margin-top: calc(-1.65 * 17px - 10px + 2px);
+}
+
+.photos {
+  clear: both;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.photo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.photoThumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-muted);
+  object-fit: cover;
+}
+
+.photoChecked {
+  outline: 3px solid var(--color-text);
+  outline-offset: -3px;
+}
+
+.photoName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.photoName input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-info-surface);
+  color: var(--color-text);
+}
+
+/* 窄的題目卡（三欄並排）放不下「未作答・」，只留「系統將會選擇」 */
+@container (max-width: 300px) {
+  .noteLead {
+    display: none;
+  }
+}

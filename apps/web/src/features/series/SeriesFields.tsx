@@ -1,13 +1,12 @@
 import {
   IMAGE_MODELS,
   SERIES_DIRECTIONS,
-  VIDEO_MODELS,
   type ImageModelKey,
-  type VideoModelKey,
 } from '@templeyard/shared';
 import { OptionGroup } from '../../components/OptionGroup';
 import { TextField } from '../../components/TextField';
 import { useAiAssist } from '../assist/useAiAssist';
+import { VIDEO_MODEL_OPTIONS, isVideoModelKey } from '../videos/videoModelOptions';
 import styles from './SeriesCreateForm.module.css';
 import type { SeriesFormState } from './seriesForm';
 
@@ -65,11 +64,13 @@ export function SeriesFields({ form, update, fieldErrors, seriesId }: SeriesFiel
         onChange={(defaultImageModel) => update({ defaultImageModel })}
       />
 
-      <OptionGroup<VideoModelKey>
+      <OptionGroup<string>
         legend="預設影片模型"
-        options={VIDEO_MODELS.map((m) => ({ value: m.key, label: m.label }))}
+        options={VIDEO_MODEL_OPTIONS.filter((m) => !m.unavailable).map((m) => ({ value: m.key, label: m.label }))}
         value={form.defaultVideoModel}
-        onChange={(defaultVideoModel) => update({ defaultVideoModel })}
+        onChange={(defaultVideoModel) => {
+          if (isVideoModelKey(defaultVideoModel)) update({ defaultVideoModel });
+        }}
       />
     </>
   );

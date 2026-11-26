@@ -24,7 +24,7 @@ npm test                # 執行 API 測試（使用暫存複本，不會改到 
 | 4 | `copy-polish.json` | 問卷「想講的故事」（AI 幫我寫） | 文字 |
 | 5 | `story-script.json` | 分鏡方案（輸出 JSON）；方案修改沿用同一套寫法 | 文字 |
 | 5 | `storyboard-image.json` | 構圖草圖（選用，Nano Banana 2 Lite） | 圖片 |
-| 5 | `character-sheet.json` | 角色三視圖 | 圖片 |
+| 5 | `character-sheet.json` | 角色四格定妝板 | 圖片 |
 | 5 | `character-look.json` | 角色定裝圖 | 圖片 |
 | 5 | `keyframe.json` | 中間關鍵畫格（5b） | 圖片 |
 | 6 | `refined-frame.json` | 精緻圖（首格／末格） | 圖片 |

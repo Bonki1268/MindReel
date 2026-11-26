@@ -194,7 +194,9 @@ When('我離開這個欄位，等方案存成新版本', async ({ page }) => {
 });
 
 When(/^我把第 (\d+) 格拖到第 (\d+) 格的位置$/, async ({ page }, from: string, to: string) => {
-  await card(page, from).dragTo(card(page, to));
+  // 卡片中央是可以編輯的文字（點下去是游標，不是拖曳）：從卡片左上角的內距處抓起、放到另一張的同一處
+  const grip = { x: 8, y: 8 };
+  await card(page, from).dragTo(card(page, to), { sourcePosition: grip, targetPosition: grip });
 });
 
 When(/^我把時間軸「(.+)」往(前|後)移 (\d+) 秒$/, async ({ page }, boundary: string, direction: string, seconds: string) => {

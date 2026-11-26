@@ -10,7 +10,7 @@ export type OptionGroupProps<T extends string | number> = {
   value: T | null;
   onChange: (value: T) => void;
   /** 「或自己寫」：有傳才顯示；填寫時由上層取消選項；accessory 放在輸入框旁（例如 AI 幫我寫） */
-  other?: { value: string; onChange: (text: string) => void; accessory?: ReactNode };
+  other?: { value: string; onChange: (text: string) => void; accessory?: ReactNode; placeholder?: string };
   /** 群組標題旁的附加元件（例如來源標籤）；不算在群組名稱裡 */
   legendAccessory?: ReactNode;
   /** 整組不能選（例如已確認的定裝版） */
@@ -54,6 +54,7 @@ export function OptionGroup<T extends string | number>({
             id={otherId}
             className={styles.otherInput}
             value={other.value}
+            placeholder={other.placeholder ?? ''}
             onChange={(event) => other.onChange(event.target.value)}
           />
           {other.accessory}

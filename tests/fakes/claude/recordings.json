@@ -397,8 +397,8 @@
       "text": "{\"polished\": \"漁民在廟埕點香，抬頭看見屋脊上的媽祖像（錄製的回應第 {{n}} 版）\", \"notes\": \"錄製的回應\"}"
     },
     {
-      "match": "人物設定參考圖",
-      "text": "{\"prompt\": \"Character reference sheet, front side back. {{user}}\", \"notes\": \"錄製的回應：角色三視圖\"}"
+      "match": "四格定妝板",
+      "text": "{\"prompt\": \"Character reference sheet, 2x2 board: headless front, side, back, head close-up. {{user}}\", \"notes\": \"錄製的回應：角色四格定妝板\"}"
     },
     {
       "match": "角色定裝照",

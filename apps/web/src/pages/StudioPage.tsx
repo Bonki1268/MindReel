@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { imageModelLabel, videoModelLabel, type VideoDetail } from '@templeyard/shared';
+import type { VideoDetail } from '@templeyard/shared';
 import { useCallback, useId, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { fetchClips, fetchFrames, fetchPlan, fetchQuestionnaire, fetchVideoBudget } from '../api/client';
+import { fetchClips, fetchFrames, fetchPlan, fetchQuestionnaire } from '../api/client';
 import { FinalPanel, clipsKey } from '../features/final/FinalPanel';
 import { FramesPanel, GeneratingPanel, framesKey } from '../features/frames/FramesPanel';
 import { useFinalNotification, useFrameNotification } from '../features/frames/useFrameNotification';
@@ -11,7 +11,9 @@ import { useSeriesList } from '../features/series/useSeriesList';
 import { ChatColumn } from '../features/studio/ChatColumn';
 import { HomePanel } from '../features/studio/HomePanel';
 import { PANEL_NOT_REACHED, STUDIO_PANELS, reachablePanels, resolvePanel } from '../features/studio/panels';
+import { WorkspaceHeader } from '../features/studio/WorkspaceHeader';
 import { QuestionnairePanel } from '../features/studio/QuestionnairePanel';
+import { StudioFooterContext } from '../features/studio/StudioFooter';
 import { questionnaireKey, useStudioChat } from '../features/studio/useStudioChat';
 import { useVideoDetail } from '../features/videos/useVideoDetail';
 import page from './CreateVideoPage.module.css';
@@ -55,9 +57,9 @@ export function StudioPage() {
 function Workspace({ detail }: { detail: VideoDetail }) {
   const videoId = detail.video.id;
   const panelSelectId = useId();
+  const [footerSlot, setFooterSlot] = useState<HTMLElement | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const series = useSeriesList().data?.find((item) => item.id === detail.video.seriesId);
-  const budget = useQuery({ queryKey: ['budget', videoId], queryFn: () => fetchVideoBudget(videoId) });
   const questionnaire = useQuery({ queryKey: questionnaireKey(videoId), queryFn: () => fetchQuestionnaire(videoId) });
   const plan = useQuery({
     queryKey: planKey(videoId),
@@ -124,67 +126,41 @@ function Workspace({ detail }: { detail: VideoDetail }) {
   }
 
   return (
-    <>
-      <header className={styles.header}>
-        <Link to="/" className={page.brand}>
-          <span className={page.mark} aria-hidden="true">
-            廟
-          </span>
-          廟埕影室
-        </Link>
-        <h1 className={styles.title}>創作工作區</h1>
-        <dl className={styles.facts}>
-          <div>
-            <dt>寺廟</dt>
-            <dd>{detail.temple.name}</dd>
-          </div>
-          <div>
-            <dt>系列</dt>
-            <dd>{series?.name ?? '讀取中'}</dd>
-          </div>
-          <div>
-            <dt>圖片模型</dt>
-            <dd>{imageModelLabel(detail.video.imageModel)}</dd>
-          </div>
-          <div>
-            <dt>影片模型</dt>
-            <dd>{videoModelLabel(detail.video.videoModel)}</dd>
-          </div>
-          <div>
-            <dt>費用</dt>
-            <dd className={styles.cost}>
-              {budget.data ? (
-                <>
-                  <span>已用 {budget.data.spent} 點</span>
-                  <span>{budget.data.limit === null ? '上限未設定' : `上限 ${budget.data.limit} 點`}</span>
-                </>
-              ) : (
-                '讀取中'
-              )}
-            </dd>
-          </div>
-        </dl>
-      </header>
+    <StudioFooterContext.Provider value={footerSlot}>
+      <div className={styles.shell}>
+        <WorkspaceHeader
+          videoId={videoId}
+          title="創作工作區"
+          crumbs={[{ label: series?.name ?? '讀取中', ...(series ? { to: `/series/${series.id}` } : {}) }, { label: detail.temple.name }]}
+          imageModel={detail.video.imageModel}
+          videoModel={detail.video.videoModel}
+        >
+          <label htmlFor={panelSelectId}>面板</label>
+          <select id={panelSelectId} value={panel} onChange={(event) => setSearchParams({ panel: event.target.value })}>
+            {STUDIO_PANELS.map((item) => {
+              const reached = reachable.includes(item.key);
+              return (
+                <option key={item.key} value={item.key} disabled={!reached}>
+                  {reached ? item.label : `${item.label}（${PANEL_NOT_REACHED}）`}
+                </option>
+              );
+            })}
+          </select>
+        </WorkspaceHeader>
 
-      <main className={styles.layout}>
-        <ChatColumn messages={chat.messages} live={chat.live} sending={chat.sending} error={chat.error} onSend={(content) => void send(content)} />
+        <div className={styles.body}>
+          <ChatColumn
+            rail
+            messages={chat.messages}
+            live={chat.live}
+            sending={chat.sending}
+            error={chat.error}
+            onSend={(content) => void send(content)}
+            greeting={`寺廟定裝版已確認。跟我說你想為${detail.temple.name}做什麼樣的影片，一句話就夠了，我會再用幾題問卷補齊細節。`}
+          />
 
-        <div className={styles.workspace}>
-          <div className={styles.panelPicker}>
-            <label htmlFor={panelSelectId}>面板</label>
-            <select id={panelSelectId} value={panel} onChange={(event) => setSearchParams({ panel: event.target.value })}>
-              {STUDIO_PANELS.map((item) => {
-                const reached = reachable.includes(item.key);
-                return (
-                  <option key={item.key} value={item.key} disabled={!reached}>
-                    {reached ? item.label : `${item.label}（${PANEL_NOT_REACHED}）`}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {panel === 'home' && <HomePanel videoId={videoId} templeName={detail.temple.name} sending={chat.sending} onSend={(content) => void send(content)} />}
+          <main className={styles.workspace}>
+          {panel === 'home' && <HomePanel videoId={videoId} templeName={detail.temple.name} photoCount={detail.photos.length} sending={chat.sending} onSend={(content) => void send(content)} />}
           {panel === 'questionnaire' && questionnaire.data && (
             <QuestionnairePanel
               key={`${questionnaire.data.id}-${JSON.stringify(questionnaire.data.answers.map(({ source: _source, ...rest }) => rest))}`}
@@ -221,8 +197,10 @@ function Workspace({ detail }: { detail: VideoDetail }) {
           {panel === 'plan' && plan.data?.plan && (
             <PlanPanel key={plan.data.plan.id} savedVersion={savedVersion} onSaved={setSavedVersion} videoId={videoId} data={{ ...plan.data, plan: plan.data.plan }} seriesVisualStyle={series?.visualStyle ?? ''} imageModel={detail.video.imageModel} onFramesStarted={() => void framesStarted()} />
           )}
+          </main>
         </div>
-      </main>
-    </>
+        <div ref={setFooterSlot} className={styles.footerSlot} />
+      </div>
+    </StudioFooterContext.Provider>
   );
 }

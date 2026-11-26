@@ -95,6 +95,13 @@ describe('成品字幕', () => {
     expect(assDialogues(buildAss([{ startSec: 0, endSec: 3, text: '你好，歡迎來到廟埕' }]))).toEqual(['你好，歡迎來到廟埕']);
     expect(assDialogues(buildAss([{ startSec: 0, endSec: 3, text: 'one, two' }]))).toEqual(['one, two']);
   });
+
+  it('每句字幕淡入淡出，不在剪接點突然跳出；取回的文字不含淡入淡出指令', () => {
+    const ass = buildAss([{ startSec: 0, endSec: 3, text: '南山福德宮' }]);
+    const dialogue = ass.split('\n').find((line) => line.startsWith('Dialogue:')) ?? '';
+    expect(dialogue).toMatch(/\\fad\(\d+,\d+\)/);
+    expect(assDialogues(ass)).toEqual(['南山福德宮']);
+  });
 });
 
 describe('偏差比對的相似度', () => {
