@@ -101,6 +101,10 @@
       ]
     },
     {
+      "match": "商品定裝版的視角圖",
+      "text": "{\"prompt\": \"Reference plate for one fixed view of a product, on a clean neutral backdrop, no text overlays. {{user}}\", \"notes\": \"錄製的回應：依照片寫出商品外觀與光線\"}"
+    },
+    {
       "match": "寺廟定裝版的視角圖",
       "text": "{\"prompt\": \"Reference plate for one fixed view of a real temple, 16:9, empty of people. {{user}}\", \"notes\": \"錄製的回應：依照片寫出建築外觀與光線\"}"
     },
