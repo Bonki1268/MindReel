@@ -1,0 +1,16 @@
+{
+  "id": "ecommerce",
+  "name": "電商",
+  "subject_type": "product",
+  "directions": ["新品上市"],
+  "categories": ["其他"],
+  "view_keys": [{ "key": "front", "name": "正面" }],
+  "features": { "scriptProposals": true, "styleQuestion": true, "productHero": true },
+  "script_structure": [],
+  "style_options": [],
+  "default_aspect_ratio": "9:16",
+  "default_duration_sec": 15,
+  "subtitle_safe_area": {},
+  "compliance": { "blocked_terms": {}, "warn_terms": {}, "replacements": {} },
+  "prompts": {}
+}

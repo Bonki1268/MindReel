@@ -1,0 +1,20 @@
+{
+  "id": "workshop",
+  "name": "工坊",
+  "subject_type": "temple",
+  "labels": { "subject": "工坊", "board": "工坊定裝版", "subjectPhotos": "工坊照片" },
+  "directions": ["職人故事", "體驗課程"],
+  "categories": [],
+  "view_keys": [
+    { "key": "storefront", "name": "店面" },
+    { "key": "workbench", "name": "工作檯" }
+  ],
+  "features": { "scriptProposals": false, "styleQuestion": false, "productHero": false },
+  "script_structure": [],
+  "style_options": [],
+  "default_aspect_ratio": "16:9",
+  "default_duration_sec": 20,
+  "subtitle_safe_area": {},
+  "compliance": { "blocked_terms": {}, "warn_terms": {}, "replacements": {} },
+  "prompts": {}
+}

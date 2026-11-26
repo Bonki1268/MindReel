@@ -1,5 +1,6 @@
 import type { APIResponse } from '@playwright/test';
-import type { TempleSummary } from '@templeyard/shared';
+import type { ChildProcess } from 'node:child_process';
+import type { ScenarioPackSummary, TempleSummary } from '@templeyard/shared';
 import { test as base, createBdd } from 'playwright-bdd';
 
 // 同一個場景裡，步驟之間共用的狀態。
@@ -35,13 +36,29 @@ type ScenarioState = {
   characterAssets?: { sheet: string | null; look: string | null };
   /** 「確認並下載」下載到的檔案（第 12 階段） */
   downloaded?: { filename: string; bytes: Buffer };
+  /** 第 15 階段：透過 API 讀到的情境包清單 */
+  scenarioPacks?: ScenarioPackSummary[];
+  /** 第 15 階段：另外啟動的後端（用不同的情境包設定）；場景結束時關掉 */
+  backend?: { process: ChildProcess; baseUrl: string; output: () => string; exited: Promise<number | null> };
+  backendResponse?: { status: number; body: unknown };
+  backendStart?: { exitCode: number | null; output: string };
 };
 
 export const test = base.extend<{ state: ScenarioState }>({
   // Playwright fixture 的第一個參數必須是解構寫法
   // eslint-disable-next-line no-empty-pattern
   state: async ({}, use) => {
-    await use({});
+    const state: ScenarioState = {};
+    await use(state);
+    // 另外啟動的後端用完就關（連同 pnpm 底下的子行程）
+    const child = state.backend?.process;
+    if (child?.pid && child.exitCode === null) {
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch {
+        // 已經結束
+      }
+    }
   },
 });
 

@@ -5,7 +5,7 @@ import type { ClaudeModel } from '@templeyard/agent';
 import { loadPromptFiles, loadWorkflowConfig, promptsDir, workflowsFile } from '@templeyard/prompts';
 import { createCloudAssetSender, createLimiter, type CloudAssetTransport, type ComfyClient } from '@templeyard/comfy-client';
 import type { PromptWriter } from '@templeyard/prompts';
-import type { HealthResponse, PromptFile, WorkflowConfig } from '@templeyard/shared';
+import type { HealthResponse, PromptFile, ScenarioPackRegistry, WorkflowConfig } from '@templeyard/shared';
 import { findAsset } from './assets/repository.js';
 import { createAssetStore } from './assets/store.js';
 import { createConsentStore, type ConsentStore } from './costs/consents.js';
@@ -47,6 +47,8 @@ export type AppDeps = {
   clock?: Clock;
   /** 檔案資料夾（data/assets/）；測試可指定暫存資料夾 */
   assetsDir?: string;
+  /** 情境包登記表；預設讀 repo 的 scenario-packs/ */
+  scenarioPacks?: ScenarioPackRegistry;
   /** workflows/models.json；預設讀 repo 裡的設定檔 */
   workflows?: WorkflowConfig;
   consents?: ConsentStore;

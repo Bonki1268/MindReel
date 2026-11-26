@@ -88,3 +88,16 @@ export const videoDetailResponseSchema = z.object({
   reusableBoard: reusableTempleBoardSchema.nullable().default(null),
 });
 export type VideoDetail = z.infer<typeof videoDetailResponseSchema>;
+
+// 第 15 階段起影片多了主體與畫面比例（由系列的情境包決定）。既有的 videoSchema 不改，
+// 後端回傳的影片多這兩個欄位。
+export const videoScenarioFieldsSchema = z.object({
+  subjectType: z.enum(['temple', 'product']).default('temple'),
+  aspectRatio: z.enum(['16:9', '9:16']).default('16:9'),
+});
+export const scenarioVideoSchema = videoSchema.extend(videoScenarioFieldsSchema.shape);
+export const scenarioVideoResponseSchema = z.object({ video: scenarioVideoSchema });
+export type ScenarioVideo = z.infer<typeof scenarioVideoSchema>;
+
+/** 電商系列在第 15 階段還不能建立影片 */
+export const PRODUCT_VIDEO_NOT_READY_MESSAGE = '商品功能在下一階段加入';

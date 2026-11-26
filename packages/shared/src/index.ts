@@ -16,6 +16,7 @@ export * from './plans.js';
 export * from './promptFiles.js';
 export * from './questionnaire.js';
 export * from './questionnaireDefaults.js';
+export * from './scenarioPacks.js';
 export * from './series.js';
 export * from './seriesPages.js';
 export * from './seriesSnapshot.js';

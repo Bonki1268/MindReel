@@ -11,3 +11,6 @@ export function resolveDataDir(env: NodeJS.ProcessEnv = process.env): string {
 
 /** 寺廟原始資料 */
 export const templesCsvPath = path.join(repoRoot, 'data', 'temples.csv');
+
+/** 情境包設定檔（scenario-packs/<id>/pack.json） */
+export const scenarioPacksDir = path.join(repoRoot, 'scenario-packs');

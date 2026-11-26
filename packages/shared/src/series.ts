@@ -55,3 +55,15 @@ export type Series = z.infer<typeof seriesSchema>;
 
 export const seriesListResponseSchema = z.object({ series: z.array(seriesSchema) });
 export const seriesResponseSchema = z.object({ series: seriesSchema });
+
+// 第 15 階段起的系列多了情境包。既有的 seriesSchema 不改，舊測試與舊資料照常運作；
+// 後端一律回傳這個形狀（多一個 scenarioPack），前端用它讀。
+export const scenarioSeriesSchema = seriesSchema.extend({ scenarioPack: z.string().default('temple') });
+export type ScenarioSeries = z.infer<typeof scenarioSeriesSchema>;
+
+export const scenarioSeriesListResponseSchema = z.object({ series: z.array(scenarioSeriesSchema) });
+export const scenarioSeriesResponseSchema = z.object({ series: scenarioSeriesSchema });
+
+/** 建立系列後情境包不能更改 */
+export const SCENARIO_PACK_LOCKED_MESSAGE = '情境包建立後不能更改';
+export const SCENARIO_PACK_NOT_FOUND_MESSAGE = '找不到這個情境包';
