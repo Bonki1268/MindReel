@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { costLimitSchema } from './costs.js';
 import { IMAGE_MODEL_KEYS, VIDEO_MODEL_KEYS } from './models.js';
 import { photoSchema } from './photos.js';
+import { productSnapshotSchema } from './products.js';
 import { seriesSnapshotSchema } from './seriesSnapshot.js';
 import { reusableTempleBoardSchema } from './templeBoards.js';
 import { templeSummarySchema } from './temples.js';
@@ -94,10 +95,14 @@ export type VideoDetail = z.infer<typeof videoDetailResponseSchema>;
 export const videoScenarioFieldsSchema = z.object({
   subjectType: z.enum(['temple', 'product']).default('temple'),
   aspectRatio: z.enum(['16:9', '9:16']).default('16:9'),
+  // 第 16 階段：電商影片的商品、建立影片時保存的商品資料、使用的商品定裝版版本（廟埕影片都是 null）
+  productId: z.string().nullable().default(null),
+  productSnapshot: productSnapshotSchema.nullable().default(null),
+  productBoardVersionId: z.string().nullable().default(null),
 });
 export const scenarioVideoSchema = videoSchema.extend(videoScenarioFieldsSchema.shape);
 export const scenarioVideoResponseSchema = z.object({ video: scenarioVideoSchema });
 export type ScenarioVideo = z.infer<typeof scenarioVideoSchema>;
 
-/** 電商系列在第 15 階段還不能建立影片 */
+/** 電商系列用寺廟建立影片（第 15 階段起的訊息；第 16 階段起電商系列要用商品建立影片） */
 export const PRODUCT_VIDEO_NOT_READY_MESSAGE = '商品功能在下一階段加入';

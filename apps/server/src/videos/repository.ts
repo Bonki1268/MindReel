@@ -1,4 +1,4 @@
-import { makeSeriesSnapshot, seriesSnapshotSchema, type ScenarioVideo, type UpdateVideoInput } from '@templeyard/shared';
+import { makeSeriesSnapshot, productSnapshotSchema, seriesSnapshotSchema, type ProductSnapshot, type ScenarioVideo, type UpdateVideoInput } from '@templeyard/shared';
 import { eq } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { getSettings } from '../costs/repository.js';
@@ -7,19 +7,24 @@ import { findSeries, type Clock } from '../series/repository.js';
 
 export type NewVideo = {
   seriesId: string;
-  templeId: string;
+  /** 商品影片沒有寺廟：存成 null（領域型別的 templeId 是空字串，只有廟埕流程會用到） */
+  templeId: string | null;
   imageModel: string;
   videoModel: string;
   /** 由系列的情境包決定；省略就是廟埕影片（寺廟、16:9） */
   subjectType?: ScenarioVideo['subjectType'];
   aspectRatio?: ScenarioVideo['aspectRatio'];
+  /** 電商影片：商品與建立當下的商品資料（之後腳本、字幕、指令讀這份） */
+  productId?: string;
+  productSnapshot?: ProductSnapshot;
 };
 
 function toVideo(row: VideoRow): ScenarioVideo {
   return {
     id: row.id,
     seriesId: row.seriesId,
-    templeId: row.templeId,
+    // 商品影片的 temple_id 是 null；領域型別維持 string（空字串），邊界用 subjectType／productId 區分
+    templeId: row.templeId ?? '',
     stage: row.stage,
     imageModel: row.imageModel,
     videoModel: row.videoModel,
@@ -33,6 +38,10 @@ function toVideo(row: VideoRow): ScenarioVideo {
     seriesSnapshot: seriesSnapshotSchema.nullable().catch(null).parse(row.seriesSnapshot ?? null),
     subjectType: row.subjectType,
     aspectRatio: row.aspectRatio,
+    productId: row.productId,
+    // 格式不正確的快照（壞掉的舊資料）當成沒有
+    productSnapshot: productSnapshotSchema.nullable().catch(null).parse(row.productSnapshot ?? null),
+    productBoardVersionId: row.productBoardVersionId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

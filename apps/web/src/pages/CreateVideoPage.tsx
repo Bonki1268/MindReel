@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { PRODUCT_VIDEO_NOT_READY_MESSAGE, imageModelLabel, planBoardViews, viewName, type StandardViewKey, type VideoDetail } from '@templeyard/shared';
+import { imageModelLabel, planBoardViews, viewName, type StandardViewKey, type VideoDetail } from '@templeyard/shared';
 import { useId, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiRequestError, generateTempleBoard, postCostEstimate, regenerateTempleView, reuseTempleBoard } from '../api/client';
@@ -13,13 +13,14 @@ import { ModelSection } from '../features/videos/ModelSection';
 import { StepBar } from '../features/videos/StepBar';
 import { TempleSection } from '../features/videos/TempleSection';
 import { boardEstimateText, bottomNote, currentStep, pendingItems } from '../features/videos/createVideoSteps';
-import { useVideoDetail } from '../features/videos/useVideoDetail';
+import { useUpdateVideoDetail, useVideoDetail } from '../features/videos/useVideoDetail';
 import styles from './CreateVideoPage.module.css';
+import { CreateProductVideoPage } from './CreateProductVideoPage';
 
-// 建立影片（/series/:sid/videos/new）：選寺廟 → 選模型 → 上傳照片 → 產生（或沿用）寺廟定裝版
+// 建立影片（/series/:sid/videos/new）：依系列的情境包分流；廟埕包：選寺廟 → 選模型 → 上傳照片 → 產生（或沿用）寺廟定裝版
 // 選定寺廟後建立影片草稿，編號放在網址的 ?video=，重新整理後仍在。
 // 從定裝版頁「補傳照片取代」回來時，網址帶 ?view=，補傳後只重做那個視角。
-export function CreateVideoPage() {
+function TempleCreateVideoPage() {
   const noteId = useId();
   const navigate = useNavigate();
   const { sid = '' } = useParams();
@@ -28,11 +29,10 @@ export function CreateVideoPage() {
   const replaceView = searchParams.get('view');
   const seriesList = useSeriesList();
   const series = seriesList.data?.find((item) => item.id === sid);
-  // 情境包：決定這個系列建立影片的流程與用詞（電商的商品功能第 16 階段才有）
-  const pack = useScenarioPack(series?.scenarioPack);
+  // 情境包：決定這個系列建立影片的用詞
   const labels = useScenarioLabels(series?.scenarioPack);
-  const productNotReady = pack?.subjectType === 'product';
   const detailQuery = useVideoDetail(videoId);
+  const updateDetail = useUpdateVideoDetail(videoId ?? '');
   const detail = detailQuery.data ?? null;
   const [inferred, setInferred] = useState<ReadonlySet<StandardViewKey>>(new Set());
 
@@ -94,13 +94,8 @@ export function CreateVideoPage() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>建立影片</h1>
-        {productNotReady && (
-          <p className={styles.notice} role="status">
-            {PRODUCT_VIDEO_NOT_READY_MESSAGE}
-          </p>
-        )}
-        {!productNotReady && <p className={styles.intro}>選定{labels.subject}與模型，上傳照片後產生{labels.board}。定裝版確認後就能開始創作。</p>}
-        {!productNotReady && <StepBar current={currentStep(progress)} />}
+        <p className={styles.intro}>選定{labels.subject}與模型，上傳照片後產生{labels.board}。定裝版確認後就能開始創作。</p>
+        <StepBar current={currentStep(progress)} />
 
         {seriesList.isSuccess && !series && (
           <p className={styles.error} role="alert">
@@ -114,18 +109,18 @@ export function CreateVideoPage() {
           </p>
         )}
 
-        {!productNotReady && detail && replaceView && hasBoard && <ReplaceViewSection detail={detail} viewKey={replaceView} />}
+        {detail && replaceView && hasBoard && <ReplaceViewSection detail={detail} viewKey={replaceView} />}
 
-        {!productNotReady && (!videoId || detail) && (
+        {(!videoId || detail) && (
           <TempleSection
             seriesId={sid}
             detail={detail}
             onVideoCreated={(id) => setSearchParams({ video: id }, { replace: true })}
           />
         )}
-        {!productNotReady && detail && !hasBoard && detail.reusableBoard && <ReuseSection detail={detail} />}
-        {!productNotReady && detail && <ModelSection detail={detail} series={series} />}
-        {!productNotReady && detail && <PhotoSection detail={detail} inferred={inferred} onToggleInferred={toggleInferred} inferLocked={hasBoard} />}
+        {detail && !hasBoard && detail.reusableBoard && <ReuseSection detail={detail} />}
+        {detail && <ModelSection video={detail.video} series={series} onUpdated={(video) => updateDetail((old) => ({ ...old, video }))} />}
+        {detail && <PhotoSection detail={detail} inferred={inferred} onToggleInferred={toggleInferred} inferLocked={hasBoard} />}
         {consent.error && (
           <p className={styles.error} role="alert">
             產生{labels.board}失敗：{consent.error}
@@ -133,7 +128,7 @@ export function CreateVideoPage() {
         )}
       </main>
 
-      {productNotReady ? null : hasBoard && videoId ? (
+      {hasBoard && videoId ? (
         <BottomActionBar note={`已產生${labels.board}`} noteId={noteId}>
           <Link className={styles.primaryLink} to={`/videos/${videoId}/temple-board`}>
             前往{labels.board}
@@ -220,4 +215,15 @@ function ReplaceViewSection({ detail, viewKey }: { detail: VideoDetail; viewKey:
       {consent.dialog}
     </section>
   );
+}
+
+/** 建立影片：電商包用商品建立影片，其他情境包用寺廟 */
+export function CreateVideoPage() {
+  const { sid = '' } = useParams();
+  const seriesList = useSeriesList();
+  const series = seriesList.data?.find((item) => item.id === sid);
+  const pack = useScenarioPack(series?.scenarioPack);
+  if (series && !pack) return <p className={styles.muted}>正在讀取…</p>;
+  if (series && pack?.subjectType === 'product') return <CreateProductVideoPage series={series} pack={pack} />;
+  return <TempleCreateVideoPage />;
 }

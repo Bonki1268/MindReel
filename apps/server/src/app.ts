@@ -35,6 +35,8 @@ import { registerPlanRoutes } from './routes/plans.js';
 import { registerSeriesRoutes } from './routes/series.js';
 import { registerStudioRoutes } from './routes/studio.js';
 import { registerSupplementalViewRoutes } from './routes/supplementalViews.js';
+import { registerProductBoardRoutes } from './routes/productBoards.js';
+import { registerProductRoutes } from './routes/products.js';
 import { registerTempleBoardRoutes } from './routes/templeBoards.js';
 import { registerTempleRoutes } from './routes/temples.js';
 import { registerVideoRoutes } from './routes/videos.js';
@@ -42,6 +44,9 @@ import type { Clock } from './series/repository.js';
 import { createChatService } from './studio/chat.js';
 import { createQuestionnaireService } from './studio/questionnaire.js';
 import { TEMPLE_VIEW_NODE, createTempleBoardService } from './templeBoards/service.js';
+import { PRODUCT_VIEW_NODE, createProductBoardService } from './productBoards/service.js';
+import { createProductService } from './products/service.js';
+import { loadPackPrompts } from './scenarioPacks/prompts.js';
 
 export type AppDeps = {
   db: AppDatabase;
@@ -116,7 +121,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         handlers,
       })
     : null;
-  const prompts = deps.prompts ?? loadPromptFiles(promptsDir);
+  // 指令：Prompt Studio 的節點，加上各情境包自己的指令（scenario-packs/<id>/prompts/）
+  const prompts = deps.prompts ?? new Map([...loadPromptFiles(promptsDir), ...loadPackPrompts([scenarioPacksDir])]);
   // 精緻圖與影片服務比定裝版、角色服務晚建立：先宣告，變動通知在呼叫時才讀取
   let frameService: FrameService | null = null;
   let clipService: ClipService | null = null;
@@ -146,15 +152,44 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     onVersionConfirmed: (videoId, viewKeys) => frameService?.invalidate(videoId, { type: 'templeBoard', viewKeys }),
   });
   handlers[TEMPLE_VIEW_NODE] = boards.handleGenerated;
+  // 商品定裝版（F26）：和寺廟定裝版共用生成服務
+  const productBoards = createProductBoardService({
+    db: deps.db,
+    clock,
+    workflows,
+    prompts,
+    store,
+    packs: scenarioPacks,
+    generation:
+      runtime && generation
+        ? {
+            service: generation,
+            writer: runtime.writer,
+            sendAsset: createCloudAssetSender({
+              transport: runtime.transport,
+              readBytes: async (asset) => {
+                const found = findAsset(deps.db, asset.id);
+                if (!found) throw new Error(`找不到檔案：${asset.id}`);
+                return store.read(found.path);
+              },
+            }),
+          }
+        : null,
+    ...(deps.generationUnavailableMessage ? { unavailableMessage: deps.generationUnavailableMessage } : {}),
+  });
+  handlers[PRODUCT_VIEW_NODE] = productBoards.handleGenerated;
+  const products = createProductService({ db: deps.db, clock, packs: scenarioPacks });
 
   registerTempleRoutes(app, deps.db);
   registerScenarioPackRoutes(app, scenarioPacks);
   registerSeriesRoutes(app, deps.db, clock, scenarioPacks);
-  registerVideoRoutes(app, deps.db, clock, boards, scenarioPacks);
+  registerVideoRoutes(app, deps.db, clock, boards, scenarioPacks, productBoards);
   registerPhotoRoutes(app, deps.db, clock, store);
   registerAssetRoutes(app, deps.db, store);
   registerCostRoutes(app, deps.db, workflows, consents);
   registerTempleBoardRoutes(app, boards);
+  registerProductRoutes(app, deps.db, clock, store, products, scenarioPacks);
+  registerProductBoardRoutes(app, productBoards);
 
   // 創作對話、問卷、AI 輔助撰寫：Claude 沒有設定時回 503 並說明 textUnavailableMessage
   const text = deps.text ?? null;

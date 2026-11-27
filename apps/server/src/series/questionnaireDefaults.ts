@@ -8,7 +8,7 @@ import {
   type DefaultsPatch,
   type QuestionnaireDefaults,
 } from '@templeyard/shared';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { series, temples, videos } from '../db/schema.js';
 import { firstSubmittedVideoId } from './videos.js';
@@ -30,9 +30,9 @@ export function readQuestionnaireDefaults(db: AppDatabase, seriesId: string): Qu
   const sourceId = firstSubmittedVideoId(db, seriesId);
   const source = sourceId
     ? db
-        .select({ id: videos.id, creativeInput: videos.creativeInput, templeName: temples.name })
+        .select({ id: videos.id, creativeInput: videos.creativeInput, templeName: sql<string>`coalesce(${temples.name}, json_extract(${videos.productSnapshot}, '$.name'), '')` })
         .from(videos)
-        .innerJoin(temples, eq(videos.templeId, temples.id))
+        .leftJoin(temples, eq(videos.templeId, temples.id))
         .where(eq(videos.id, sourceId))
         .get()
     : null;

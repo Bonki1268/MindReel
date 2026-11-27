@@ -97,6 +97,8 @@ export const scenarioPackSummarySchema = z.object({
   labels: z.record(z.string(), z.string()),
   directions: z.array(z.string()),
   categories: z.array(z.string()),
+  /** 定裝版的視角清單（商品照指定視角、讓 AI 推測缺少的視角） */
+  viewKeys: z.array(z.object({ key: z.string(), name: z.string() })).default([]),
   defaultAspectRatio: z.enum(PACK_ASPECT_RATIOS),
   defaultDurationSec: z.number(),
   features: z.object({ scriptProposals: z.boolean(), styleQuestion: z.boolean(), productHero: z.boolean() }),
@@ -113,6 +115,7 @@ export function toScenarioPackSummary(pack: ScenarioPack): ScenarioPackSummary {
     labels: { ...pack.labels },
     directions: [...pack.directions],
     categories: [...pack.categories],
+    viewKeys: pack.view_keys.map((view) => ({ key: view.key, name: view.name })),
     defaultAspectRatio: pack.default_aspect_ratio,
     defaultDurationSec: pack.default_duration_sec,
     features: { ...pack.features },

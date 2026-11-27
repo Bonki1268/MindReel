@@ -18,7 +18,8 @@ function toPhoto(row: PhotoRow): Photo {
   return {
     id: row.id,
     seriesId: row.seriesId,
-    templeId: row.templeId,
+    // 寺廟照片一定有 temple_id；商品照走 products/repository，不經過這裡
+    templeId: row.templeId ?? '',
     videoId: row.videoId,
     originalAssetId: row.originalAssetId,
     deidentifiedAssetId: row.deidentifiedAssetId,
@@ -30,6 +31,8 @@ function toPhoto(row: PhotoRow): Photo {
 
 /** 這支影片看得到的照片：同系列同一間廟的寺廟照片，加上這支影片自己的補充照片；先上傳的在前 */
 export function listPhotosForVideo(db: AppDatabase, video: { id: string; seriesId: string; templeId: string }): Photo[] {
+  // 商品影片沒有寺廟（templeId 是空字串）：它的照片在 products/repository
+  if (!video.templeId) return [];
   return db
     .select()
     .from(photos)

@@ -13,8 +13,11 @@ const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url
 export function openDatabase(file: string): AppDatabase {
   const sqlite = new Database(file);
   sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('foreign_keys = ON');
   const db = drizzle(sqlite, { schema });
+  // 重建資料表的 migration（例如 0014 把 temple_id 改成 nullable）要在外鍵關閉時執行；
+  // PRAGMA foreign_keys 在交易裡不會生效，所以在 migrate 之前關、之後打開
+  sqlite.pragma('foreign_keys = OFF');
   migrate(db, { migrationsFolder });
+  sqlite.pragma('foreign_keys = ON');
   return db;
 }

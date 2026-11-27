@@ -4,7 +4,7 @@ import { STANDARD_VIEWS, viewKeySchema, type StandardViewKey } from './views.js'
 // 寺廟定裝版（docs/05-Backend-Schema.md「temple_boards、temple_board_versions、temple_views」、03「寺廟定裝版」）
 
 /** 確認紀錄的確認點（05「confirmations」） */
-export const CONFIRMATION_POINTS = ['temple_board', 'questionnaire', 'plan_generate', 'frames', 'final'] as const;
+export const CONFIRMATION_POINTS = ['temple_board', 'product_board', 'questionnaire', 'plan_generate', 'frames', 'final'] as const;
 export type ConfirmationPoint = (typeof CONFIRMATION_POINTS)[number];
 
 /** 光線與時段的選項（設計稿 TempleBoard）；預設晴天午後（規格書「光線與時段」的例子） */

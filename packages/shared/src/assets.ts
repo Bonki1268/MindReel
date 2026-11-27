@@ -6,6 +6,7 @@ export const ASSET_KINDS = [
   'original_photo',
   'deid_photo',
   'view',
+  'product_view',
   'character_sheet',
   'frame',
   'clip',

@@ -8,6 +8,7 @@ import type {
   GenerationStatus,
   PlanDiff,
   PlanSource,
+  ProductSnapshot,
   QuestionnaireAnswer,
   SeriesSnapshot,
   ShotSize,
@@ -79,7 +80,8 @@ export const videos = sqliteTable(
       .notNull()
       .references(() => series.id),
     // 不設外鍵：pnpm db:import 會整批重建 temples（id 是原始資料的固定 UUID）
-    templeId: text('temple_id').notNull(),
+    // 第 16 階段起 nullable：商品影片沒有寺廟（subject_type = product 時 product_id 有值）
+    templeId: text('temple_id'),
     stage: text('stage').$type<VideoStage>().notNull(),
     imageModel: text('image_model').notNull(),
     videoModel: text('video_model').notNull(),
@@ -96,6 +98,10 @@ export const videos = sqliteTable(
     // 第 15 階段：主體（temple／product）與畫面比例，由系列的情境包決定；既有影片遷移為 temple、16:9
     subjectType: text('subject_type').$type<'temple' | 'product'>().notNull().default('temple'),
     aspectRatio: text('aspect_ratio').$type<'16:9' | '9:16'>().notNull().default('16:9'),
+    // 第 16 階段：電商影片的商品、建立影片時保存的商品資料、使用的商品定裝版版本
+    productId: text('product_id'),
+    productSnapshot: text('product_snapshot', { mode: 'json' }).$type<ProductSnapshot | null>(),
+    productBoardVersionId: text('product_board_version_id'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
@@ -133,7 +139,9 @@ export const photos = sqliteTable(
       .notNull()
       .references(() => series.id),
     // 不設外鍵：pnpm db:import 會整批重建 temples（id 是原始資料的固定 UUID）
-    templeId: text('temple_id').notNull(),
+    // 第 16 階段起 nullable：video_id 為 null 時 temple_id、product_id 恰好一個有值
+    templeId: text('temple_id'),
+    productId: text('product_id'),
     videoId: text('video_id').references(() => videos.id),
     originalAssetId: text('original_asset_id')
       .notNull()
@@ -145,7 +153,10 @@ export const photos = sqliteTable(
     deidBoxes: text('deid_boxes', { mode: 'json' }).$type<DeidBox[]>().notNull(),
     createdAt: text('created_at').notNull(),
   },
-  (table) => [index('photos_series_temple_idx').on(table.seriesId, table.templeId)],
+  (table) => [
+    index('photos_series_temple_idx').on(table.seriesId, table.templeId),
+    index('photos_product_idx').on(table.productId),
+  ],
 );
 
 export type PhotoRow = typeof photos.$inferSelect;
@@ -244,6 +255,88 @@ export const templeViews = sqliteTable(
 );
 
 export type TempleViewRow = typeof templeViews.$inferSelect;
+
+/** products：商品；只屬於一個電商系列，修改只影響之後新增的影片（影片保存 product_snapshot） */
+export const products = sqliteTable(
+  'products',
+  {
+    id: text('id').primaryKey(),
+    seriesId: text('series_id')
+      .notNull()
+      .references(() => series.id),
+    name: text('name').notNull(),
+    brand: text('brand'),
+    category: text('category').notNull(),
+    sellingPoints: text('selling_points', { mode: 'json' }).$type<string[]>().notNull(),
+    price: integer('price'),
+    priceNote: text('price_note'),
+    specs: text('specs'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('products_series_idx').on(table.seriesId)],
+);
+
+export type ProductRow = typeof products.$inferSelect;
+
+/** product_boards：商品定裝版；同系列同一件商品只有一份，current_version_id 指向目前確認過的版本 */
+export const productBoards = sqliteTable(
+  'product_boards',
+  {
+    id: text('id').primaryKey(),
+    seriesId: text('series_id')
+      .notNull()
+      .references(() => series.id),
+    productId: text('product_id')
+      .notNull()
+      .references(() => products.id),
+    currentVersionId: text('current_version_id'),
+  },
+  (table) => [uniqueIndex('product_boards_series_product_uq').on(table.seriesId, table.productId)],
+);
+
+export type ProductBoardRow = typeof productBoards.$inferSelect;
+
+/** product_board_versions：商品定裝版的版本；另存新版本時新增一列，確認後不再修改 */
+export const productBoardVersions = sqliteTable(
+  'product_board_versions',
+  {
+    id: text('id').primaryKey(),
+    boardId: text('board_id')
+      .notNull()
+      .references(() => productBoards.id),
+    version: integer('version').notNull(),
+    imageModel: text('image_model').notNull(),
+    appearanceLocks: text('appearance_locks', { mode: 'json' }).$type<string[]>().notNull(),
+    defaultLighting: text('default_lighting').notNull(),
+    confirmedAt: text('confirmed_at'),
+  },
+  (table) => [uniqueIndex('product_board_versions_board_version_uq').on(table.boardId, table.version)],
+);
+
+export type ProductBoardVersionRow = typeof productBoardVersions.$inferSelect;
+
+/** product_views：某一版商品定裝版的一張視角圖 */
+export const productViews = sqliteTable(
+  'product_views',
+  {
+    id: text('id').primaryKey(),
+    boardVersionId: text('board_version_id')
+      .notNull()
+      .references(() => productBoardVersions.id),
+    viewKey: text('view_key').notNull(),
+    viewName: text('view_name').notNull(),
+    source: text('source').$type<TempleViewSource>().notNull(),
+    photoId: text('photo_id').references(() => photos.id),
+    assetId: text('asset_id').references(() => assets.id),
+    confirmed: integer('confirmed', { mode: 'boolean' }).notNull().default(false),
+    createdFromVideoId: text('created_from_video_id').references(() => videos.id),
+  },
+  (table) => [uniqueIndex('product_views_version_view_uq').on(table.boardVersionId, table.viewKey)],
+);
+
+export type ProductViewRow = typeof productViews.$inferSelect;
 
 /** confirmations：確認紀錄；失效時寫 invalidated_at，不刪除 */
 export const confirmations = sqliteTable(

@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Route, Routes } from 'react-router';
 import { CreateVideoPage } from './pages/CreateVideoPage';
+import { ProductBoardPage } from './pages/ProductBoardPage';
+import { ProductPage } from './pages/ProductPage';
 import { SeriesHomePage } from './pages/SeriesHomePage';
 import { CharacterDetailPage } from './pages/series/CharacterDetailPage';
 import { SeriesCharactersTab } from './pages/series/SeriesCharactersTab';
@@ -30,6 +32,8 @@ export function App() {
           <Route path="characters/:cid" element={<CharacterDetailPage />} />
         </Route>
         <Route path="/series/:sid/videos/new" element={<CreateVideoPage />} />
+        <Route path="/series/:sid/products/:pid" element={<ProductPage />} />
+        <Route path="/videos/:vid/product-board" element={<ProductBoardPage />} />
         <Route path="/videos/:vid/temple-board" element={<TempleBoardPage />} />
         <Route path="/videos/:vid/studio" element={<StudioPage />} />
         <Route path="/videos/:vid/shots/:shotKey" element={<ShotDetailPage />} />

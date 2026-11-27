@@ -6,25 +6,29 @@ import {
   type ModelInfo,
   type Series,
   type UpdateVideoInput,
-  type VideoDetail,
+  type Video,
 } from '@templeyard/shared';
 import { Lock, TriangleAlert } from 'lucide-react';
 import { useId } from 'react';
 import { patchVideo } from '../../api/client';
 import { Tag } from '../../components/Tag';
 import styles from './ModelSection.module.css';
-import { useUpdateVideoDetail } from './useVideoDetail';
 
-type ModelSectionProps = { detail: VideoDetail; series: Series | undefined };
+type ModelSectionProps = {
+  video: Video;
+  series: Series | undefined;
+  /** 更換模型後，請上層更新這支影片 */
+  onUpdated: (video: Video) => void;
+  /** 鎖定模型的時機用詞：寺廟定裝版或商品定裝版 */
+  boardLabel?: string;
+};
 
 /** 2 選擇生成模型：帶入系列預設，可改；產生（或沿用）寺廟定裝版後鎖定 */
-export function ModelSection({ detail, series }: ModelSectionProps) {
+export function ModelSection({ video, series, onUpdated, boardLabel = '寺廟定裝版' }: ModelSectionProps) {
   const titleId = useId();
-  const { video } = detail;
-  const updateDetail = useUpdateVideoDetail(video.id);
   const choose = useMutation({
     mutationFn: (input: UpdateVideoInput) => patchVideo(video.id, input),
-    onSuccess: (updated) => updateDetail((old) => ({ ...old, video: updated })),
+    onSuccess: onUpdated,
   });
   const locked = video.modelsLockedAt !== null;
   const noAudio = VIDEO_MODELS.find((model) => model.key === video.videoModel && !model.nativeAudio);
@@ -40,7 +44,7 @@ export function ModelSection({ detail, series }: ModelSectionProps) {
         </h2>
         <p className={styles.lockNote}>
           <Lock size={16} strokeWidth={1.8} aria-hidden="true" />
-          {locked ? '模型已在產生寺廟定裝版時鎖定，這支影片不能再換模型' : '按下「產生寺廟定裝版」後鎖定，這支影片不能再換模型'}
+          {locked ? `模型已在產生${boardLabel}時鎖定，這支影片不能再換模型` : `按下「產生${boardLabel}」後鎖定，這支影片不能再換模型`}
         </p>
       </div>
 

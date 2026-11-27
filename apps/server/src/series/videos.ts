@@ -1,5 +1,5 @@
 import { filterVideos, sortVideos, videoStatus, videoTitle, type SeriesVideosResponse, type VideoFilter, type VideoSort } from '@templeyard/shared';
-import { and, asc, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { assets, characters, clips, finals, frames, plans, questionnaires, shots, temples, videos } from '../db/schema.js';
 
@@ -17,11 +17,12 @@ export function listSeriesVideos(db: AppDatabase, seriesId: string, options: { s
       imageModel: videos.imageModel,
       videoModel: videos.videoModel,
       creativeInput: videos.creativeInput,
-      templeName: temples.name,
-      district: temples.district,
+      // 商品影片沒有寺廟：名稱用商品快照的品名（標籤與標題都以它為準）
+      templeName: sql<string>`coalesce(${temples.name}, json_extract(${videos.productSnapshot}, '$.name'), '')`,
+      district: sql<string>`coalesce(${temples.district}, '')`,
     })
     .from(videos)
-    .innerJoin(temples, eq(videos.templeId, temples.id))
+    .leftJoin(temples, eq(videos.templeId, temples.id))
     .where(eq(videos.seriesId, seriesId))
     .all();
   const cards = rows.map(({ creativeInput, ...row }) => {

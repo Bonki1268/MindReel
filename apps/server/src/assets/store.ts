@@ -23,6 +23,7 @@ const FOLDERS: Record<AssetKind, string> = {
   original_photo: 'originals',
   deid_photo: 'deid',
   view: 'views',
+  product_view: 'product-views',
   character_sheet: 'characters',
   frame: 'frames',
   clip: 'clips',

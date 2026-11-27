@@ -23,6 +23,12 @@ import {
   consentResponseSchema,
   costCheckSchema,
   templeBoardResponseSchema,
+  productBoardResponseSchema,
+  productDetailResponseSchema,
+  productListResponseSchema,
+  productPhotoResponseSchema,
+  productResponseSchema,
+  productVideoDetailResponseSchema,
   photoResponseSchema,
   scenarioPacksResponseSchema,
   scenarioSeriesListResponseSchema,
@@ -50,6 +56,19 @@ import {
   type CostCheck,
   type CostItem,
   type GenerateTempleBoardInput,
+  type GenerateProductBoardInput,
+  type CreateProductInput,
+  type CreateProductPhotoInput,
+  type Product,
+  type ProductBoard,
+  type ProductDetail,
+  type ProductPhoto,
+  type ProductSummary,
+  type ProductVideoDetail,
+  type RegenerateProductViewInput,
+  type UpdateProductBoardInput,
+  type UpdateProductInput,
+  type UpdateProductPhotoInput,
   type RegenerateTempleViewInput,
   type TempleBoard,
   type UpdateTempleBoardInput,
@@ -234,7 +253,11 @@ export async function fetchVideoBudget(videoId: string): Promise<Budget> {
 }
 
 /** 送出生成：409 且附上 check 時丟出 ConsentRequiredError */
-async function requestGeneration(path: string, payload: unknown): Promise<TempleBoard> {
+async function requestGeneration<T = TempleBoard>(
+  path: string,
+  payload: unknown,
+  parseBoard: (body: unknown) => T = (body) => templeBoardResponseSchema.parse(body).board as T,
+): Promise<T> {
   const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(
     () => {
       throw new ApiRequestError('連不上本機後端，請確認 pnpm dev 有在執行', 0);
@@ -251,7 +274,7 @@ async function requestGeneration(path: string, payload: unknown): Promise<Temple
       ? new ApiRequestError(parsed.data.message, response.status, parsed.data.fieldErrors)
       : new ApiRequestError(`後端回應錯誤（${response.status}）`, response.status);
   }
-  return templeBoardResponseSchema.parse(body).board;
+  return parseBoard(body);
 }
 
 export async function fetchTempleBoard(videoId: string): Promise<TempleBoard> {
@@ -521,4 +544,87 @@ export async function fetchSettings(): Promise<Settings> {
 export async function patchSettings(input: Partial<Settings>): Promise<Settings> {
   const body = (await request('/api/settings', { method: 'PATCH', body: JSON.stringify(input) })) as { settings?: unknown };
   return settingsSchema.parse(body.settings);
+}
+
+// ── 商品與商品定裝版（第 16 階段） ──
+
+export async function fetchProducts(seriesId: string): Promise<ProductSummary[]> {
+  return productListResponseSchema.parse(await request(`/api/series/${seriesId}/products`)).products;
+}
+
+export async function postProduct(seriesId: string, input: CreateProductInput): Promise<Product> {
+  const body = await request(`/api/series/${seriesId}/products`, { method: 'POST', body: JSON.stringify(input) });
+  return productResponseSchema.parse(body).product;
+}
+
+export async function fetchProduct(productId: string): Promise<ProductDetail> {
+  return productDetailResponseSchema.parse(await request(`/api/products/${encodeURIComponent(productId)}`));
+}
+
+export async function patchProduct(productId: string, input: UpdateProductInput): Promise<Product> {
+  const body = await request(`/api/products/${encodeURIComponent(productId)}`, { method: 'PATCH', body: JSON.stringify(input) });
+  return productResponseSchema.parse(body).product;
+}
+
+/** 商品照的原圖只送到本機後端，永遠不會送往雲端 */
+export async function postOriginalProductPhoto(productId: string, image: ImageUpload): Promise<Asset> {
+  const body = await request(`/api/products/${encodeURIComponent(productId)}/photos/originals`, { method: 'POST', body: JSON.stringify(image) });
+  return assetResponseSchema.parse(body).asset;
+}
+
+export async function postProductPhoto(productId: string, input: CreateProductPhotoInput): Promise<ProductPhoto> {
+  const body = await request(`/api/products/${encodeURIComponent(productId)}/photos`, { method: 'POST', body: JSON.stringify(input) });
+  return productPhotoResponseSchema.parse(body).photo;
+}
+
+export async function patchProductPhoto(productId: string, photoId: string, input: UpdateProductPhotoInput): Promise<ProductPhoto> {
+  const body = await request(`/api/products/${encodeURIComponent(productId)}/photos/${encodeURIComponent(photoId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  return productPhotoResponseSchema.parse(body).photo;
+}
+
+/** 電商系列用商品建立影片 */
+export async function postProductVideo(input: { seriesId: string; productId: string }): Promise<Video> {
+  const body = await request('/api/videos', { method: 'POST', body: JSON.stringify(input) });
+  return videoResponseSchema.parse(body).video;
+}
+
+export async function fetchProductVideoDetail(videoId: string): Promise<ProductVideoDetail> {
+  return productVideoDetailResponseSchema.parse(await request(`/api/videos/${encodeURIComponent(videoId)}`));
+}
+
+const parseProductBoard = (body: unknown): ProductBoard => productBoardResponseSchema.parse(body).board;
+
+export async function fetchProductBoard(videoId: string): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board`));
+}
+
+export function generateProductBoard(videoId: string, input: GenerateProductBoardInput): Promise<ProductBoard> {
+  return requestGeneration(`/api/videos/${videoId}/product-board/generate`, input, parseProductBoard);
+}
+
+export function regenerateProductView(videoId: string, viewKey: string, input: RegenerateProductViewInput): Promise<ProductBoard> {
+  return requestGeneration(`/api/videos/${videoId}/product-board/views/${viewKey}/regenerate`, input, parseProductBoard);
+}
+
+export async function confirmProductView(videoId: string, viewKey: string): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board/views/${viewKey}/confirm`, { method: 'POST', body: '{}' }));
+}
+
+export async function patchProductBoard(videoId: string, input: UpdateProductBoardInput): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board`, { method: 'PATCH', body: JSON.stringify(input) }));
+}
+
+export async function confirmProductBoard(videoId: string): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board/confirm`, { method: 'POST', body: '{}' }));
+}
+
+export async function reuseProductBoard(videoId: string): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board/reuse`, { method: 'POST', body: '{}' }));
+}
+
+export async function saveProductBoardVersion(videoId: string): Promise<ProductBoard> {
+  return parseProductBoard(await request(`/api/videos/${videoId}/product-board/versions`, { method: 'POST', body: '{}' }));
 }
