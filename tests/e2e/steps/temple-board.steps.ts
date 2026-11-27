@@ -121,6 +121,14 @@ When('我打開這支影片的創作工作區', async ({ page, state }) => {
 });
 
 Then(/^網址是這支影片的「(.+)」$/, async ({ page, state }, pattern: string) => {
+  // 從畫面建立影片的場景沒有事先記下影片編號：網址符合就從網址記下來。
+  if (!state.videoIds?.length) {
+    const [before = '', after = ''] = pattern.split(':vid');
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(before)}[^/]+${escapeRegExp(after)}$`));
+    const found = new RegExp(`${escapeRegExp(before)}([^/]+)${escapeRegExp(after)}$`).exec(new URL(page.url()).pathname);
+    if (found?.[1]) state.videoIds = [found[1]];
+    return;
+  }
   const expected = pattern.replace(':vid', requireVideoId(state));
   await expect(page).toHaveURL(new RegExp(`${escapeRegExp(expected)}$`));
 });
