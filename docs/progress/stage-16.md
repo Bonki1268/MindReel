@@ -18,7 +18,7 @@
 - 紅燈（82f22e0）：新測試全部以「尚未實作」失敗。
 - 測試修正（a78ae03，使用者同意）：刪除 `features/stage-15-scenario-packs` 中過時的「電商系列建立影片頁顯示『商品功能在下一階段加入』」情境（與第 16 階段情境互相矛盾）；在 `tests/e2e/steps/temple-board.steps.ts` 的「網址是這支影片的」step 補上從網址記下影片編號。
 - 綠燈：`pnpm test` 133 檔、1621 項全過（第 15 階段結束時 1497，約新增 124 項單元測試）；`pnpm test:e2e` 451 項（第 15 階段結束時 423）；`pnpm typecheck`、`pnpm lint` 通過。
-- 不穩定情境（如實記錄）：首次 `pnpm test` 有 1 項失敗（既有已知的並行逾時問題），再跑全過；`pnpm test:e2e` 整套跑時 stage-12「用對話修改成品…」失敗 1 項（合成等待逾時），單獨重跑通過；其餘 450 項通過。
+- 不穩定情境（如實記錄）：builder 首次 `pnpm test` 有 1 項失敗、再跑全過；稽核者整套跑 `pnpm test` 有 3 項逾時失敗（`scheduleRegeneration.test.ts` 兩項、`references/integration.test.ts` 一項），`pnpm test:e2e` 451 項中 20 項失敗（皆為 stage-12～15 舊情境的逾時，stage-16 情境全過），挑 4 項單獨重跑全通過。整套並行時的逾時比先前記錄的嚴重，建議調高逾時或降低並行（舊測試，需使用者同意才能改）。
 - `verify-tests-untouched.mjs a78ae03` 通過。
 
 ## 3. 新增套件與命名
@@ -45,4 +45,9 @@
 
 ## 6. 稽核結果
 
-（由稽核者填寫）
+**通過（有保留）**——test-auditor，2026-11-27。
+
+- `verify-tests-untouched.mjs a78ae03` 通過；82f22e0→a78ae03 兩處修正（刪除過時的第 15 階段頁面情境、step 補從網址記影片編號）合理、未放水；step 在未預先記錄編號時比對較寬鬆，可接受。
+- 範圍完整：F25、F26 各有情境（product.feature 12、product-board.feature 10 個場景）與單元測試；無空洞測試、無 `.skip`／`.only`；未提前做第 17 階段以後。
+- 不花錢、無金鑰；原圖不上雲：`sendAsset` 型別限 `CloudOkAsset`，無同意憑證回 409。
+- 保留：整套並行的逾時失敗比原報告多（見第 2 節），已列入等你處理。
